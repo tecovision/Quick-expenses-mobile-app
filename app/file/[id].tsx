@@ -569,18 +569,25 @@ export default function FileScreen() {
 
       {/*
         Bottom spacing:
-        • Keyboard open  → full keyboard height, lifting the input row to sit
-          right on top of the keyboard. The screen draws edge-to-edge so the
-          window never resizes; this padding is what does the lifting. The
-          SafeAreaView excludes the bottom edge, so the container reaches the
-          true screen bottom and `keyboardHeight` is the exact distance needed.
+        • Keyboard open  → lift the input row to sit on top of the keyboard.
+          The screen draws edge-to-edge so the window never resizes; this
+          padding is what does the lifting. On Android the reported keyboard
+          height is measured from ABOVE the navigation bar, while our container
+          (SafeAreaView excludes the bottom edge) reaches the true screen
+          bottom — so we add insets.bottom to clear the nav-bar gap, otherwise
+          the row's bottom hides behind the keyboard. iOS already reports the
+          full frame including the home indicator, so no inset is added there.
         • Keyboard closed → bottom safe-area inset so the input row clears the
           Android nav bar / iOS home indicator.
       */}
       <View
         style={[
           styles.kav,
-          { paddingBottom: keyboardVisible ? keyboardHeight : insets.bottom },
+          {
+            paddingBottom: keyboardVisible
+              ? keyboardHeight + (Platform.OS === 'android' ? insets.bottom : 0)
+              : insets.bottom,
+          },
         ]}
       >
 
