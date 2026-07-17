@@ -1,116 +1,195 @@
-# Release guide
+# QuickExpenses — Google Play release guide
 
-Everything needed to take QuickExpenses from the current build to the stores.
-Items marked **[BLOCKED — needs you]** cannot be done from the codebase; they
-need an account, a payment, or a physical device.
+Android only. iOS is not being released.
 
-## Current state
+> Play policies change. Everything below reflects the process as of writing —
+> if Play Console tells you something different, believe Play Console.
 
-| Area | Status |
-|---|---|
-| Type safety (`strict`, no `any`) | ✅ Passing |
-| Test suite (`npm test`) | ✅ 41 tests passing |
-| `expo-doctor` | ✅ 18/18 |
-| CI (type-check + test on push/PR) | ✅ `.github/workflows/ci.yml` |
-| Crash reporting | ⚠️ Wired, **inert until a DSN is set** |
-| Android build | ✅ Building via EAS `preview` profile |
-| iOS build | ❌ **Never built** — needs Apple Developer account |
-| Privacy policy | ⚠️ Drafted, **needs your details + hosting** |
-| Store listing assets | ❌ Not started |
+---
 
-## 1. Crash reporting — activate Sentry
+## ⚠️ Read this first: the 14-day / 12-tester rule
 
-The integration is complete but sends nothing until a DSN exists. To turn it on:
+If your Play Developer account is registered as **Personal / individual** and
+was created **after 13 November 2023**, Google will not let you publish to
+production until you have run a **closed test with at least 12 testers who
+stayed opted-in continuously for 14 days**.
 
-1. Create a project at <https://sentry.io> (free tier is fine) → React Native.
-2. Copy the DSN.
-3. Add it to EAS as a build-time env var:
-   ```bash
-   npx eas-cli env:create --name EXPO_PUBLIC_SENTRY_DSN --value "https://...@o0.ingest.sentry.io/0" --environment production --environment preview
-   ```
-4. Rebuild. Crashes will appear in Sentry.
+This is the single biggest surprise in the process. It means **your realistic
+timeline is ~2–3 weeks minimum**, not one afternoon.
 
-To verify it works, trigger a test error in a build and confirm it lands in the
-Sentry dashboard. With no DSN the app behaves exactly as before — nothing to
-undo if you skip this.
+- **Organisation/company accounts are exempt** — they can go straight to production.
+- Check which you have: Play Console → **Settings → Developer account → Account details → Account type**.
+- The 12 testers must be real Google accounts that *accept* the tester invite
+  and keep the app installed. Recruit them before you start the clock.
+- The 14 days must be *continuous*. If testers drop below 12, the counter resets.
 
-> **Privacy:** `src/services/monitoring.ts` sets `sendDefaultPii: false` and
-> only ever attaches non-sensitive context (operation name, counts). Expense
-> names, amounts, notes, and photos are never sent. Keep it that way — if you
-> add context, do not pass user content.
+If you're Personal, start the closed test **first** — everything else (listing,
+screenshots, policy) can be finished while the clock runs.
 
-## 2. Privacy policy — **[BLOCKED — needs you]**
+---
 
-1. Fill in every `[FILL IN ...]` in [`PRIVACY_POLICY.md`](./PRIVACY_POLICY.md).
-2. Delete the crash-reporting section if you did not configure Sentry.
-3. Host it at a public, stable URL (GitHub Pages, your site, anything reachable).
-4. Paste that URL into both store listings.
+## Step 0 — Is a website mandatory?
 
-Both stores reject apps without a working privacy-policy link, and you request
-camera + photo permissions, so this is non-negotiable.
+**No.** You do not need a website, a domain, or a company site.
 
-## 3. Android release
+**But a publicly reachable privacy-policy URL is mandatory** — Play requires one
+for any app that requests sensitive permissions, and yours requests Camera and
+Photos. The URL must be a live, public page (not a Google Doc requiring sign-in,
+not a PDF download).
 
-The current builds use the `preview` profile (APK, for sideloading). For the
-Play Store you need the `production` profile (AAB):
+### Free hosting via GitHub Pages (recommended — you already have the repo)
+
+A ready-made page is at [`docs/index.html`](./index.html).
+
+1. **Fill it in first.** Replace every `[FILL IN]`, delete the yellow warning
+   banners, and delete the crash-reporting section if you don't set up Sentry.
+2. Commit and push.
+3. On GitHub: **Settings → Pages → Build and deployment**
+   - Source: **Deploy from a branch**
+   - Branch: **main**, folder: **/docs** → Save
+4. Wait ~1 minute. Your URL will be:
+   `https://<your-github-username>.github.io/Quick-expenses-mobile-app/`
+5. Open it in a private window to confirm it's public, then paste that URL into
+   Play Console.
+
+Other free options if you prefer: Google Sites, Notion (public page), Carrd.
+
+---
+
+## Step 1 — Pre-flight (do before building)
+
+```bash
+npm run type-check     # must pass
+npm test               # must pass (41 tests)
+npx expo-doctor        # must be 18/18
+```
+
+Set the version users will see, in `app.json` → `expo.version` (e.g. `1.0.0`).
+You do **not** need to touch `versionCode` — `eas.json` has
+`autoIncrement: true` and `appVersionSource: "remote"`, so EAS manages build
+numbers. Every upload to Play must have a higher versionCode than the last;
+EAS handles that for you.
+
+---
+
+## Step 2 — Build the release AAB
+
+Play requires an **Android App Bundle (.aab)**, not the APK you've been
+sideloading. The `production` profile is already configured for this.
 
 ```bash
 npx eas-cli build --profile production --platform android
 ```
 
-Then, for submission — **[BLOCKED — needs you]**:
+Download the `.aab` from the build page when it finishes.
 
-1. Create a Google Play Developer account (one-time $25).
-2. Create the app in Play Console.
-3. Create a service account, download its JSON key, save it at the repo root as
-   `play-store-service-account.json` (already gitignored — never commit it).
-4. `npx eas-cli submit --platform android --profile production`
+### About signing — important
 
-Also required in Play Console: Data Safety form (answers drafted in the privacy
-policy appendix), content rating questionnaire, target audience, and store
-listing assets (below).
+EAS generates and stores your **upload key**. Google re-signs with the **app
+signing key** it holds (Play App Signing). Consequences:
 
-## 4. iOS release — **[BLOCKED — needs you]**
+- **Never lose your EAS account access.** Back up credentials:
+  `npx eas-cli credentials` → Android → download/keep a copy somewhere safe.
+- If you ever lose the upload key you can ask Google to reset it, but it's
+  painful. Don't rely on that.
 
-**iOS has never been built or run.** All iOS-specific code (keyboard padding,
-safe-area handling, gestures) is written correctly but has zero device
-verification. Expect to find issues on the first real run.
+---
 
-1. Enrol in the Apple Developer Program ($99/year). Nothing below is possible
-   without it.
-2. Build: `npx eas-cli build --profile production --platform ios`
-3. Submit to TestFlight: `npx eas-cli submit --platform ios --profile production`
-   — EAS will prompt for your Apple ID, App Store Connect app ID, and Team ID.
-   (The `submit.production.ios` block was removed from `eas.json` rather than
-   left with fake placeholders; add it back once you know the real values.)
-4. **Test thoroughly on a real iPhone before submitting for review** —
-   especially the keyboard behaviour on the file screen.
+## Step 3 — Create the app in Play Console
 
-## 5. Store listing assets — **[BLOCKED — needs you]**
+<https://play.google.com/console> → **Create app**
 
-Neither store will accept a submission without these. They need a device or
-simulator, so they can't be generated from here.
+- **App name:** QuickExpenses (max 30 chars)
+- **Default language:** English
+- **App or game:** App
+- **Free or paid:** Free
+- Accept the declarations.
 
-- **Screenshots**: Play requires ≥2 (min 320px, max 3840px). App Store requires
-  6.7" iPhone screenshots; others optional.
-- **Play feature graphic**: 1024×500 PNG/JPG.
-- **App icon**: ✅ already configured (`assets/icon.png`).
-- **Short description** (Play, ≤80 chars) and **full description** (≤4000).
-- **Keywords** (App Store, ≤100 chars).
+---
 
-Suggested copy to adapt:
+## Step 4 — Closed testing (start the 14-day clock NOW if Personal)
 
-> **Short:** Fast, private expense tracking. No account, no cloud — your data
-> stays on your phone.
+**Testing → Closed testing → Create new release**
+
+1. Upload your `.aab`.
+2. Release name: auto-filled from versionCode — fine.
+3. Release notes: e.g. `First closed test build.`
+4. **Testers** tab → create an email list → add **at least 12** Google accounts
+   → save.
+5. Copy the **opt-in URL** and send it to your testers. Each must open it,
+   accept, and install the app.
+6. Roll out the release.
+
+Confirm in the console that 12+ testers show as opted in. **The clock only
+counts while ≥12 are opted in.**
+
+Use these two weeks to actually test (see Step 8).
+
+---
+
+## Step 5 — Complete every section under "Policy" and "Grow"
+
+Play blocks release until all of these are green. Go through
+**Policy → App content** item by item:
+
+| Section | Your answer |
+|---|---|
+| **Privacy policy** | Your GitHub Pages URL from Step 0 |
+| **Ads** | No, my app does not contain ads |
+| **App access** | All functionality available without special access (no login) |
+| **Content ratings** | Fill the questionnaire — a utility with no objectionable content; expect **Everyone / PEGI 3** |
+| **Target audience** | 18+ (or 13+). **Do not** target children — that triggers Families Policy |
+| **News app** | No |
+| **COVID-19 contact tracing** | No |
+| **Data safety** | See below |
+| **Government apps** | No |
+| **Financial features** | **None of these** — a personal expense tracker is not a financial service (no banking, lending, investing, or crypto) |
+| **Health apps** | No |
+
+### Data safety (the section people get wrong)
+
+Play defines "collection" as **transmitting data off the device**. Your expense
+data never leaves the phone, so it is **not collected**.
+
+- **If you did NOT configure Sentry:** answer **"No"** to "Does your app collect
+  or share any of the required user data types?" Done.
+- **If you DID configure Sentry:** answer **Yes**, then declare only:
+  - **Crash logs** and **Diagnostics** (under *App activity / App info and performance*)
+  - Collected: Yes · Shared: Yes (Sentry, a processor)
+  - Purpose: Analytics / App functionality
+  - Required? **No** — optional
+  - Encrypted in transit: **Yes**
+  - Users can request deletion: **Yes** (your support email)
+
+Declare **not collected** for: Location, Personal info, Financial info, Photos
+and videos, Files and docs, Contacts, Device IDs.
+
+Your answers must match your privacy policy — they're cross-checked.
+
+---
+
+## Step 6 — Store listing
+
+**Grow → Store presence → Main store listing**
+
+| Asset | Requirement | Status |
+|---|---|---|
+| App icon | 512×512 PNG, 32-bit | Export from `assets/icon.png` |
+| Feature graphic | **1024×500** PNG/JPG — **required** | ❗ You must create this |
+| Phone screenshots | **2–8**, min 320px, 16:9 or 9:16 | ❗ Capture on device |
+| Short description | ≤80 chars | Draft below |
+| Full description | ≤4000 chars | Draft below |
+
+Take screenshots on your phone (Power + Volume Down) of: the file list, a file
+with entries, the note/photo entry, and the export dialog.
+
+**Short description:**
+> Fast, private expense tracking. No account, no cloud — your data stays on your phone.
+
+**Full description:**
+> QuickExpenses is a straightforward expense tracker built for speed and privacy. Create files for trips, projects, or months, and add entries in seconds from a single row — description, amount, an optional note, and a receipt photo.
 >
-> **Full:** QuickExpenses is a straightforward expense tracker built for speed
-> and privacy. Create files for trips, projects, or months, and add entries in
-> seconds from a single row — description, amount, an optional note, and a
-> receipt photo.
->
-> Everything stays on your device. There's no account to create, no cloud sync,
-> and no ads. When you need to hand something over, export any file as a PDF or
-> CSV, or bundle every file into a single ZIP.
+> Everything stays on your device. There's no account to create, no cloud sync, and no ads. When you need to hand something over, export any file as a PDF or CSV, or bundle every file into a single ZIP.
 >
 > • Table view with running totals
 > • Attach receipt photos, pinch to zoom
@@ -122,28 +201,91 @@ Suggested copy to adapt:
 > • 150+ currencies
 > • Works completely offline
 
-## 6. Before you ship — checklist
+---
 
-- [ ] Keyboard behaviour confirmed on a real Android device
-- [ ] Keyboard behaviour confirmed on a real iPhone
-- [ ] Tested on a small screen and a tablet
-- [ ] `npm test` and `npm run type-check` pass
-- [ ] Sentry DSN configured and a test crash verified
-- [ ] Privacy policy filled in and hosted
-- [ ] Play Data Safety form matches the privacy policy
-- [ ] Screenshots and descriptions uploaded
-- [ ] Version bumped in `app.json` if needed (`autoIncrement` handles build
-      numbers; the user-facing `version` string is yours to set)
+## Step 7 — Optional but recommended: turn on crash reporting
+
+Without this you are blind to crashes in production.
+
+1. Create a free project at <https://sentry.io> → React Native → copy the DSN.
+2. ```bash
+   npx eas-cli env:create --name EXPO_PUBLIC_SENTRY_DSN \
+     --value "https://...@o0.ingest.sentry.io/0" \
+     --environment production --environment preview
+   ```
+3. Rebuild. Verify a test crash appears in Sentry.
+
+If you skip this, the code stays completely inert — nothing to undo. But
+remember to delete the crash-reporting section from your privacy policy and
+answer "not collected" in Data safety.
+
+---
+
+## Step 8 — Test properly during the 14 days
+
+The suite (`npm test`) covers logic, not screens. Every UI bug so far was found
+on a device. Walk these on at least two different phones:
+
+- [ ] **Keyboard**: open a file — the blue input row sits fully above the
+      keyboard, nothing cut off
+- [ ] **Rapid entry**: add 10 entries in a row — keyboard never closes between them
+- [ ] **Note**: tap `+`, type a note, tap **Done** — keyboard dismisses
+- [ ] **Photo**: attach from camera and from gallery; deny the permission once
+      and confirm the app explains rather than crashes
+- [ ] **Permanently deny** camera in system settings → confirm the "Open
+      Settings" path appears
+- [ ] **Export**: PDF and CSV from a file; verify notes appear in both
+- [ ] **Export all as ZIP** from Settings with several files
+- [ ] **Delete + undo** an entry; delete a file and restore from Recently Deleted
+- [ ] **Rotate / small screen / large font** (Settings → Display → Font size: max)
+- [ ] **Airplane mode** — everything must still work (app is offline-first)
+- [ ] **Kill and relaunch** — data persists
+- [ ] **Fresh install** — the two default files appear
+
+---
+
+## Step 9 — Promote to production
+
+Once the 14 days are complete (or immediately, if you're an organisation):
+
+1. If Personal: **Testing → Closed testing → Apply for production access**.
+   Google asks how you tested and what feedback you got — answer honestly and
+   specifically. This review can take a few days.
+2. **Production → Create new release**
+3. Upload the `.aab` (or promote the tested closed-testing release)
+4. Add release notes
+5. Set **rollout percentage** — start at **20%**, not 100%. If Sentry shows
+   crashes you can halt before everyone gets it.
+6. **Send for review.** First review typically takes a few days to ~a week.
+
+After launch: watch Play Console → **Quality → Android vitals** (crash rate,
+ANR rate) and your Sentry dashboard. Raise the rollout to 100% once it's stable.
+
+---
+
+## Realistic timeline
+
+| Phase | Time |
+|---|---|
+| Build AAB + Console setup | ~1 day |
+| Closed test (Personal accounts) | **14 days minimum** |
+| Production access review | 1–7 days |
+| App review | 1–7 days |
+| **Total** | **~3–4 weeks** |
+
+Organisation accounts can skip the middle two rows.
+
+---
 
 ## Known gaps / tech debt
 
-- **No UI/component tests.** The suite covers pure logic (validation, export
-  escaping, store reducers). Screen rendering and gestures are untested —
-  every UI regression so far was caught manually on a device.
-- **Old React Native architecture** (`newArchEnabled: false`). Fine today; the
-  new architecture is where RN is heading. Migrating needs a full re-test.
-- **`supportsTablet: false`** on iOS — deliberate. Revisit if you want iPad.
-- **Keyboard handling is manual.** `app/file/[id].tsx` pads by the reported
-  keyboard height because Expo SDK 54 forces edge-to-edge on Android (the
-  window never resizes). If keyboard bugs resurface across many devices,
-  consider `react-native-keyboard-controller` instead of hand-tuning insets.
+- **No UI tests.** Logic is covered; screens and gestures are not.
+- **Old RN architecture** (`newArchEnabled: false`). Fine now; migrating later
+  needs a full re-test.
+- **Manual keyboard handling.** `app/file/[id].tsx` pads by the reported
+  keyboard height because Expo SDK 54 forces edge-to-edge on Android. If
+  keyboard bugs appear across many devices, consider
+  `react-native-keyboard-controller` rather than hand-tuning insets.
+- **`RECORD_AUDIO` is explicitly blocked** in `app.json` — `expo-image-picker`
+  adds it by default. Don't remove `"microphonePermission": false`, or your
+  listing will start asking users for microphone access.

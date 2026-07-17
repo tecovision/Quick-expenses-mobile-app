@@ -37,7 +37,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow QuickExpenses to attach photos to your expense entries.",
-          "cameraPermission": "Allow QuickExpenses to take photos for your expense entries."
+          "cameraPermission": "Allow QuickExpenses to take photos for your expense entries.",
+          "microphonePermission": false
         }
       ],
       "@sentry/react-native"
