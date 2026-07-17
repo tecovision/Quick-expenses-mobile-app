@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Currency, DeletedExpenseFile, ExpenseFile } from '../types';
 import { DEFAULT_CURRENCY } from '../constants/currencies';
+import { captureError } from './monitoring';
 
 const KEYS = {
   files:        '@quickexpenses/files',
@@ -18,7 +19,7 @@ export async function loadFiles(): Promise<ExpenseFile[]> {
     const parsed = JSON.parse(data);
     return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
-    if (__DEV__) console.warn('[storage] loadFiles:', e);
+    captureError(e, { op: 'loadFiles' });
     return [];
   }
 }
@@ -27,7 +28,8 @@ export async function saveFiles(files: ExpenseFile[]): Promise<void> {
   try {
     await AsyncStorage.setItem(KEYS.files, JSON.stringify(files));
   } catch (e) {
-    if (__DEV__) console.warn('[storage] saveFiles:', e);
+    // A failed write means the user silently loses data — always report.
+    captureError(e, { op: 'saveFiles', count: files.length });
   }
 }
 
@@ -41,7 +43,7 @@ export async function loadDeletedFiles(): Promise<DeletedExpenseFile[]> {
     const parsed: DeletedExpenseFile[] = JSON.parse(data);
     return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
-    if (__DEV__) console.warn('[storage] loadDeletedFiles:', e);
+    captureError(e, { op: 'loadDeletedFiles' });
     return [];
   }
 }
@@ -50,7 +52,7 @@ export async function saveDeletedFiles(files: DeletedExpenseFile[]): Promise<voi
   try {
     await AsyncStorage.setItem(KEYS.deletedFiles, JSON.stringify(files));
   } catch (e) {
-    if (__DEV__) console.warn('[storage] saveDeletedFiles:', e);
+    captureError(e, { op: 'saveDeletedFiles', count: files.length });
   }
 }
 
@@ -68,7 +70,7 @@ export async function saveCurrency(currency: Currency): Promise<void> {
   try {
     await AsyncStorage.setItem(KEYS.currency, JSON.stringify(currency));
   } catch (e) {
-    if (__DEV__) console.warn('[storage] saveCurrency:', e);
+    captureError(e, { op: 'saveCurrency' });
   }
 }
 
@@ -111,6 +113,6 @@ export async function clearAllData(): Promise<void> {
   try {
     await AsyncStorage.multiRemove(Object.values(KEYS));
   } catch (e) {
-    if (__DEV__) console.warn('[storage] clearAllData:', e);
+    captureError(e, { op: 'clearAllData' });
   }
 }

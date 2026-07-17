@@ -31,6 +31,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { exportToPDF, exportToCSV } from '@/services/export';
 import { deleteAttachment } from '@/services/attachments';
 import { pickPhoto, PhotoSource } from '@/services/photoPicker';
+import { captureError } from '@/services/monitoring';
 import { Expense } from '@/types';
 
 // LayoutAnimation needs to be opted-in on old-architecture Android.
@@ -452,7 +453,8 @@ export default function FileScreen() {
     try {
       if (type === 'pdf') await exportToPDF(exportFile, file.expenses, currency);
       else await exportToCSV(exportFile, file.expenses, currency);
-    } catch {
+    } catch (e) {
+      captureError(e, { op: 'exportFile', format: type, count: file.expenses.length });
       Alert.alert('Failed', 'Something went wrong. Please try again.');
     } finally {
       setExporting(false);

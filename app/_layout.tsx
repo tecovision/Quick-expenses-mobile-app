@@ -1,9 +1,13 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, Component, ReactNode } from 'react';
+import { useEffect, Component, ReactNode, ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useStore } from '@/store/useStore';
+import { initMonitoring, captureError } from '@/services/monitoring';
+
+// Start crash reporting before anything else can throw. No-ops without a DSN.
+initMonitoring();
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -12,6 +16,9 @@ interface EBState { error: Error | null }
 class RootErrorBoundary extends Component<{ children: ReactNode }, EBState> {
   state: EBState = { error: null };
   static getDerivedStateFromError(error: Error): EBState { return { error }; }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    captureError(error, { componentStack: info.componentStack ?? 'unknown' });
+  }
   render() {
     if (this.state.error) {
       return (

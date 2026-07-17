@@ -39,7 +39,8 @@
           "photosPermission": "Allow QuickExpenses to attach photos to your expense entries.",
           "cameraPermission": "Allow QuickExpenses to take photos for your expense entries."
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true

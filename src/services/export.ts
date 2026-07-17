@@ -7,18 +7,22 @@ import { formatCurrency, fileTotal, formatDate, formatDateTime } from '../utils/
 
 type CurrencyFormat = Pick<Currency, 'symbol' | 'locale'>;
 
-const safeFileName = (name: string): string =>
+/** Exported for tests. Strips path separators and other unsafe characters. */
+export const safeFileName = (name: string): string =>
   name.replace(/[^a-z0-9_\-\s]/gi, '').replace(/\s+/g, '_').slice(0, 80) || 'expense_file';
 
-const escapeHtml = (s: string): string =>
+/** Exported for tests. */
+export const escapeHtml = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /**
  * Quote a CSV cell and neutralize spreadsheet formula injection: a leading
  * =, +, - or @ makes Excel/Sheets execute the cell as a formula, so prefix
  * those with an apostrophe (rendered invisibly by spreadsheet apps).
+ *
+ * Exported for tests.
  */
-const csvCell = (s: string): string => {
+export const csvCell = (s: string): string => {
   const guarded = /^[=+\-@]/.test(s) ? `'${s}` : s;
   return `"${guarded.replace(/"/g, '""')}"`;
 };

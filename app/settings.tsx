@@ -12,6 +12,7 @@ import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { Currency } from '@/types';
 import { exportAllAsZip } from '@/services/export';
+import { captureError } from '@/services/monitoring';
 
 export default function SettingsScreen() {
   const currency      = useStore(s => s.currency);
@@ -30,7 +31,8 @@ export default function SettingsScreen() {
     setBulkExporting(true);
     try {
       await exportAllAsZip(files, format, currency);
-    } catch {
+    } catch (e) {
+      captureError(e, { op: 'exportAllAsZip', format, fileCount: files.length });
       Alert.alert('Failed', 'Could not build the archive. Please try again.');
     } finally {
       setBulkExporting(false);

@@ -1,6 +1,7 @@
 import { Alert, Linking } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { persistAttachment } from './attachments';
+import { captureError } from './monitoring';
 
 export type PhotoSource = 'camera' | 'gallery';
 
@@ -60,7 +61,7 @@ export async function pickPhoto(source: PhotoSource): Promise<string | null> {
 
     return await persistAttachment(asset.uri);
   } catch (e) {
-    if (__DEV__) console.warn('[photoPicker]', e);
+    captureError(e, { op: 'pickPhoto', source });
     Alert.alert('Failed', 'Could not attach the photo. Please try again.');
     return null;
   }
