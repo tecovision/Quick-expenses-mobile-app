@@ -28,31 +28,43 @@ screenshots, policy) can be finished while the clock runs.
 
 ---
 
-## Step 0 — Is a website mandatory?
+## Step 0 — Privacy policy (no website needed)
 
-**No.** You do not need a website, a domain, or a company site.
+**A website is not mandatory.** No domain, no company site.
 
-**But a publicly reachable privacy-policy URL is mandatory** — Play requires one
-for any app that requests sensitive permissions, and yours requests Camera and
-Photos. The URL must be a live, public page (not a Google Doc requiring sign-in,
-not a PDF download).
+**A publicly reachable privacy-policy URL IS mandatory** — Play requires one for
+any app requesting sensitive permissions, and yours requests Camera and Photos.
+It must be a live public page (not a Google Doc behind sign-in, not a PDF).
 
-### Free hosting via GitHub Pages (recommended — you already have the repo)
+### The policy is written and filled in
 
-A ready-made page is at [`docs/index.html`](./index.html).
+[`docs/index.html`](./index.html) is complete and ready to publish:
 
-1. **Fill it in first.** Replace every `[FILL IN]`, delete the yellow warning
-   banners, and delete the crash-reporting section if you don't set up Sentry.
-2. Commit and push.
-3. On GitHub: **Settings → Pages → Build and deployment**
+- Publisher: **Mohammad Mustaqeem**
+- Contact: **tecovision.com@gmail.com**
+- States that **no data is collected** — accurate, because the app is offline
+  and no crash-reporting DSN is configured (see Step 7).
+
+⚠️ **Check the "Last updated" date** near the top and set it to the date you
+actually publish.
+
+### Publish it free with GitHub Pages
+
+1. Push (already done).
+2. On GitHub → repo **Settings → Pages → Build and deployment**
    - Source: **Deploy from a branch**
    - Branch: **main**, folder: **/docs** → Save
-4. Wait ~1 minute. Your URL will be:
-   `https://<your-github-username>.github.io/Quick-expenses-mobile-app/`
-5. Open it in a private window to confirm it's public, then paste that URL into
-   Play Console.
+3. Wait ~1 minute. Your URL will be:
 
-Other free options if you prefer: Google Sites, Notion (public page), Carrd.
+   ```
+   https://tecovision.github.io/Quick-expenses-mobile-app/
+   ```
+
+4. Open it in a **private/incognito window** to confirm it's publicly reachable,
+   then paste that URL into Play Console.
+
+> If the repo is private, Pages needs a paid plan — either make the repo public
+> or host the policy elsewhere (Google Sites and Notion public pages are free).
 
 ---
 
@@ -149,22 +161,25 @@ Play blocks release until all of these are green. Go through
 ### Data safety (the section people get wrong)
 
 Play defines "collection" as **transmitting data off the device**. Your expense
-data never leaves the phone, so it is **not collected**.
+data never leaves the phone, and no crash-reporting DSN is configured, so
+nothing is collected.
 
-- **If you did NOT configure Sentry:** answer **"No"** to "Does your app collect
-  or share any of the required user data types?" Done.
-- **If you DID configure Sentry:** answer **Yes**, then declare only:
-  - **Crash logs** and **Diagnostics** (under *App activity / App info and performance*)
-  - Collected: Yes · Shared: Yes (Sentry, a processor)
-  - Purpose: Analytics / App functionality
-  - Required? **No** — optional
-  - Encrypted in transit: **Yes**
-  - Users can request deletion: **Yes** (your support email)
+**Answer "No"** to *"Does your app collect or share any of the required user
+data types?"* — then you're done with this section.
 
-Declare **not collected** for: Location, Personal info, Financial info, Photos
-and videos, Files and docs, Contacts, Device IDs.
+That's the correct answer for the current build. Specifically, declare **not
+collected**: Location, Personal info, Financial info, Photos and videos, Files
+and docs, Contacts, Device IDs, App activity.
 
-Your answers must match your privacy policy — they're cross-checked.
+> **Why "not collected" despite the Camera/Photos permissions?** Play's
+> definition is about *transmission*. Requesting a permission is not collection;
+> the photos stay in the app's private storage on the device.
+
+Your answers must match your privacy policy — they're cross-checked. Both now
+say the same thing: nothing is collected.
+
+⚠️ **If you later enable Sentry (Step 7), you must come back and update this
+section and the privacy policy** — the answer changes to Yes / Crash logs.
 
 ---
 
@@ -203,9 +218,39 @@ with entries, the note/photo entry, and the export dialog.
 
 ---
 
-## Step 7 — Optional but recommended: turn on crash reporting
+## Step 7 — Crash reporting: skip it for v1
 
-Without this you are blind to crashes in production.
+**Decision for this release: OFF.** No action needed. This section explains why,
+and how to turn it on later if you ever want it.
+
+### What "crash reporting" means
+
+If the app crashes on a stranger's phone, you have no idea it happened. Crash
+reporting means the app quietly sends a technical report — the error and the
+line of code that failed — to a dashboard you can read.
+
+### You already get the basics for free
+
+**Play Console → Quality → Android vitals** shows crash rate and ANR rate for
+every published app, automatically. No code, no third party, no privacy
+implications — Google collects it as the platform. **For a v1 launch this is
+enough.**
+
+### Why we're skipping Sentry for now
+
+A dedicated service (Sentry) gives richer detail — full stack traces, what the
+user did before the crash. But it costs you:
+
+- Another account to manage
+- Your privacy policy must declare it
+- Data Safety becomes "Yes, we collect crash logs" instead of a clean "No"
+
+For a first launch, the simpler story is worth more than the extra detail.
+
+### Turning it on later (no code changes needed)
+
+The integration is already written and sits inert without a DSN
+(`src/services/monitoring.ts`). To activate:
 
 1. Create a free project at <https://sentry.io> → React Native → copy the DSN.
 2. ```bash
@@ -213,11 +258,13 @@ Without this you are blind to crashes in production.
      --value "https://...@o0.ingest.sentry.io/0" \
      --environment production --environment preview
    ```
-3. Rebuild. Verify a test crash appears in Sentry.
+3. Rebuild, and verify a test crash lands in the Sentry dashboard.
+4. **Then update both** the privacy policy (add back a crash-reporting section)
+   **and** the Play Data Safety form (Crash logs / Diagnostics, shared with
+   Sentry, optional, encrypted in transit).
 
-If you skip this, the code stays completely inert — nothing to undo. But
-remember to delete the crash-reporting section from your privacy policy and
-answer "not collected" in Data safety.
+Expense data is never attached to reports — `sendDefaultPii` is off and only
+non-sensitive context (operation name, counts) is sent. Keep it that way.
 
 ---
 
