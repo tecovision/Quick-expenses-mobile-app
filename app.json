@@ -40,8 +40,7 @@
           "cameraPermission": "Allow QuickExpenses to take photos for your expense entries.",
           "microphonePermission": false
         }
-      ],
-      "@sentry/react-native"
+      ]
     ],
     "experiments": {
       "typedRoutes": true

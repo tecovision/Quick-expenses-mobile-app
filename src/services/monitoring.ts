@@ -1,48 +1,23 @@
-import * as Sentry from '@sentry/react-native';
-
 /**
- * Crash reporting.
+ * Crash/error reporting hook point.
  *
- * The DSN comes from the EXPO_PUBLIC_SENTRY_DSN environment variable (set it
- * in EAS as a build-time env var, or in a local .env). With no DSN the whole
- * module stays inert — nothing is initialised and nothing is sent — so the app
- * runs identically for anyone building without a Sentry account.
+ * v1 ships without a third-party crash reporter — see docs/RELEASE.md, Step 7,
+ * for why (Play's own Android vitals covers v1; a dedicated service adds a
+ * privacy-policy obligation that isn't worth it yet). This keeps a single,
+ * stable `captureError` call site everywhere an error is handled, so adding a
+ * real reporter later (Sentry or otherwise) is a one-file change instead of a
+ * search-and-replace across the app.
  *
- * Privacy: this app's data (expense names, amounts, notes, photos) is personal
- * financial information and is NEVER attached to a report. We send only the
- * error itself plus non-identifying context. `sendDefaultPii` stays false.
+ * Do not attach expense data (names, amounts, notes, photo URIs) to
+ * `context` even after a real reporter is wired in — see the privacy policy.
  */
-const DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
-
-/** True when a DSN is configured and reports will actually be delivered. */
-export const isMonitoringEnabled = Boolean(DSN);
-
 export function initMonitoring(): void {
-  if (!DSN) return;
-  Sentry.init({
-    dsn: DSN,
-    // Only report from real builds; dev crashes are visible in the console.
-    enabled: !__DEV__,
-    debug: false,
-    // Never attach device/user identifiers by default.
-    sendDefaultPii: false,
-    // Light performance sampling — enough to spot pathological screens.
-    tracesSampleRate: 0.2,
-  });
+  // No-op until a crash reporter is added.
 }
 
-/**
- * Report a handled error. Safe to call unconditionally: it logs in dev and
- * no-ops when monitoring is not configured.
- *
- * Pass only non-sensitive context (screen name, operation, format) — never
- * expense contents.
- */
 export function captureError(
   error: unknown,
   context?: Record<string, string | number | boolean>,
 ): void {
   if (__DEV__) console.warn('[error]', error, context ?? '');
-  if (!DSN) return;
-  Sentry.captureException(error, context ? { extra: context } : undefined);
 }
