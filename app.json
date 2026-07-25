@@ -23,7 +23,10 @@
         "backgroundColor": "#F9F9F9"
       },
       "package": "com.quickexpenses.app",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "bundler": "metro",
