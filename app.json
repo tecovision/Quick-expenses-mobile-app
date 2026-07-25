@@ -22,7 +22,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F9F9F9"
       },
-      "package": "com.quickexpenses.app",
+      "package": "com.QuickExpenses",
       "softwareKeyboardLayoutMode": "resize",
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW"
