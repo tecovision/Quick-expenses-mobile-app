@@ -53,8 +53,15 @@ function RootLayout() {
 
   useEffect(() => {
     loadData()
-      .then(() => SplashScreen.hideAsync())
-      .catch(() => SplashScreen.hideAsync());
+      .catch((e) => {
+        // loadData's own steps already fall back safely on their own errors;
+        // this only fires on something truly unexpected. Force isLoading
+        // false so the app shows its normal (possibly empty) UI instead of
+        // being stuck rendering null forever behind a hidden splash screen.
+        captureError(e, { op: 'loadData' });
+        useStore.setState({ isLoading: false });
+      })
+      .finally(() => SplashScreen.hideAsync());
   }, []);
 
   if (isLoading) return null;

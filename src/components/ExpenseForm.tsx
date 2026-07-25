@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { Expense } from '../types';
 import { colors, typography, spacing, radius } from '../constants/theme';
 import { deleteAttachment } from '../services/attachments';
 import { pickPhoto, PhotoSource } from '../services/photoPicker';
-import { parseAmount } from '../utils/helpers';
+import { parseAmount, MAX_PARTICULAR_LENGTH, MAX_NOTE_LENGTH } from '../utils/helpers';
 import { PhotoViewer } from './PhotoViewer';
 
 interface Props {
@@ -43,6 +43,13 @@ export function ExpenseForm({ visible, editingExpense, onSubmit, onClose }: Prop
   // Track the photo we started with so we can clean it up only if it was
   // replaced or removed by the user pressing Save.
   const [originalPhotoUri, setOriginalPhotoUri] = useState<string | undefined>(undefined);
+
+  // This component stays mounted while hidden (only the Modal's `visible`
+  // prop toggles), so an in-flight attachPhoto can't detect a close via
+  // unmount. Mirror the prop each render so the async flow can tell whether
+  // its result is still relevant by the time the native picker returns.
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
 
   useEffect(() => {
     if (visible) {
@@ -84,6 +91,13 @@ export function ExpenseForm({ visible, editingExpense, onSubmit, onClose }: Prop
   const attachPhoto = async (source: PhotoSource) => {
     const persisted = await pickPhoto(source);
     if (!persisted) return;
+    if (!visibleRef.current) {
+      // The modal was closed (Cancel/backdrop) while the native picker was
+      // still open. This component stays mounted, so nothing else would
+      // ever notice or clean up the file this copied — delete it now.
+      deleteAttachment(persisted);
+      return;
+    }
     // If there's an unsaved draft photo, clean it up before replacing
     if (photoUri && photoUri !== originalPhotoUri) await deleteAttachment(photoUri);
     setPhotoUri(persisted);
@@ -118,6 +132,7 @@ export function ExpenseForm({ visible, editingExpense, onSubmit, onClose }: Prop
                 placeholderTextColor={colors.textLabel}
                 autoFocus={!editingExpense}
                 returnKeyType="next"
+                maxLength={MAX_PARTICULAR_LENGTH}
               />
 
               <Text style={styles.label}>Amount</Text>
@@ -129,6 +144,7 @@ export function ExpenseForm({ visible, editingExpense, onSubmit, onClose }: Prop
                 placeholderTextColor={colors.textLabel}
                 keyboardType="decimal-pad"
                 returnKeyType="done"
+                maxLength={15}
               />
 
               <View style={styles.noteLabelRow}>
@@ -151,6 +167,7 @@ export function ExpenseForm({ visible, editingExpense, onSubmit, onClose }: Prop
                 placeholder="Add a note (optional)…"
                 placeholderTextColor={colors.textLabel}
                 multiline
+                maxLength={MAX_NOTE_LENGTH}
               />
 
               <Text style={styles.label}>Photo</Text>

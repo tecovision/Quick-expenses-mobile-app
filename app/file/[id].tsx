@@ -26,7 +26,14 @@ import { ExpenseForm } from '@/components/ExpenseForm';
 import { UndoToast } from '@/components/UndoToast';
 import { PhotoViewer } from '@/components/PhotoViewer';
 import { colors, typography, spacing, radius } from '@/constants/theme';
-import { formatDateTime, fileTotal, parseAmount } from '@/utils/helpers';
+import {
+  formatDateTime,
+  fileTotal,
+  parseAmount,
+  MAX_FILE_NAME_LENGTH,
+  MAX_PARTICULAR_LENGTH,
+  MAX_NOTE_LENGTH,
+} from '@/utils/helpers';
 import { useCurrency } from '@/hooks/useCurrency';
 import { exportToPDF, exportToCSV } from '@/services/export';
 import { deleteAttachment } from '@/services/attachments';
@@ -217,12 +224,18 @@ export default function FileScreen() {
   const photoUriRef = useRef<string | null>(null);
   useEffect(() => { photoUriRef.current = photoUri; }, [photoUri]);
 
+  // Lets in-flight async work (attachPhoto) detect that the screen was
+  // unmounted while it was awaiting the native picker, so it can delete the
+  // just-copied file instead of leaking it via a dropped setState call.
+  const isMountedRef = useRef(true);
+
   // On unmount: drop any never-saved draft photo (handleAdd nulls photoUri
   // after saving, so an attached entry's photo is never touched here), and
   // commit any still-pending delete instead of leaving a dangling timer that
   // would call setState on an unmounted component.
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
 
       const draft = photoUriRef.current;
@@ -379,6 +392,12 @@ export default function FileScreen() {
   const attachPhoto = async (source: PhotoSource) => {
     const persisted = await pickPhoto(source);
     if (!persisted) return;
+    if (!isMountedRef.current) {
+      // The screen was left while the native picker was open — the copied
+      // file has no owner to attach to, so delete it instead of leaking it.
+      deleteAttachment(persisted);
+      return;
+    }
     // Replace any previous draft photo
     if (photoUri) await deleteAttachment(photoUri);
     setPhotoUri(persisted);
@@ -514,6 +533,7 @@ export default function FileScreen() {
             onSubmitEditing={handleFinishRename}
             autoFocus
             returnKeyType="done"
+            maxLength={MAX_FILE_NAME_LENGTH}
           />
         ) : (
           <TouchableOpacity onPress={handleStartRename} style={styles.nameTouchable} activeOpacity={0.7}>
@@ -691,6 +711,7 @@ export default function FileScreen() {
                 returnKeyType="next"
                 blurOnSubmit={false}
                 onSubmitEditing={() => amountRef.current?.focus()}
+                maxLength={MAX_PARTICULAR_LENGTH}
               />
 
               <TouchableOpacity
@@ -721,6 +742,7 @@ export default function FileScreen() {
                 returnKeyType="done"
                 blurOnSubmit={false}
                 onSubmitEditing={handleAdd}
+                maxLength={15}
               />
 
               <View style={[styles.inputBtnCluster, { width: COL_PENCIL + COL_DELETE }]}>
@@ -785,6 +807,7 @@ export default function FileScreen() {
                   cursorColor={colors.white}
                   selectionColor={colors.white}
                   multiline
+                  maxLength={MAX_NOTE_LENGTH}
                 />
               </View>
 

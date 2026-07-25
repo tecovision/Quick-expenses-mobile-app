@@ -7,6 +7,13 @@ export function uid(): string {
 /** Upper bound for a single expense — keeps totals, exports and layouts sane. */
 export const MAX_EXPENSE_AMOUNT = 999_999_999_999;
 
+// Caps on free-text fields. Not a security boundary (this is a local,
+// single-user, offline app) — these guard against an accidental huge paste
+// bloating AsyncStorage and slowing down PDF/CSV export rendering.
+export const MAX_FILE_NAME_LENGTH = 100;
+export const MAX_PARTICULAR_LENGTH = 200;
+export const MAX_NOTE_LENGTH = 1000;
+
 /**
  * Parse user-entered amount text. Returns the numeric value, or null when
  * the input is not a positive finite number within MAX_EXPENSE_AMOUNT

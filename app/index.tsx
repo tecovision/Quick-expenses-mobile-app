@@ -22,6 +22,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { Currency } from '@/types';
+import { MAX_FILE_NAME_LENGTH } from '@/utils/helpers';
 
 export default function HomeScreen() {
   const files           = useStore(s => s.files);
@@ -216,6 +217,7 @@ export default function HomeScreen() {
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={handleCreate}
+                maxLength={MAX_FILE_NAME_LENGTH}
               />
               <View style={styles.buttons}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={closeModal}>
