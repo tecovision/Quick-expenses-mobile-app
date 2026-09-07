@@ -1,11 +1,19 @@
+import { Platform } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import JSZip from 'jszip';
 import { Currency, Expense, ExpenseFile } from '../types';
 import { formatCurrency, fileTotal, formatDate, formatDateTime } from '../utils/helpers';
+import { loadDownloadDir, saveDownloadDir, clearDownloadDir } from './storage';
 
 type CurrencyFormat = Pick<Currency, 'symbol' | 'locale'>;
+
+/** Result of a "save to device" request. */
+export type SaveResult =
+  | { status: 'saved' }       // written to the folder the user picked (Android)
+  | { status: 'shared' }      // handed to the system (iOS — no shared folder)
+  | { status: 'cancelled' };  // user dismissed the folder picker
 
 /** Exported for tests. Strips path separators and other unsafe characters. */
 export const safeFileName = (name: string): string =>
@@ -158,6 +166,98 @@ export async function exportToCSV(
     encoding: FileSystem.EncodingType.UTF8,
   });
   await Sharing.shareAsync(path, { mimeType: 'text/csv', UTI: '.csv' });
+}
+
+// ── Download to device storage ──────────────────────────────────
+// Android: write into a folder the user grants once via the Storage Access
+// Framework (typically Downloads). The grant is remembered so later
+// downloads are silent. iOS has no shared Downloads folder, so there we
+// fall back to the system sheet, where "Save to Files" is the equivalent.
+
+const SAF = FileSystem.StorageAccessFramework;
+
+async function writeToUserFolder(
+  baseName: string,
+  mimeType: string,
+  data: string,
+  encoding: FileSystem.EncodingType,
+): Promise<SaveResult> {
+  let dirUri = await loadDownloadDir();
+
+  const createAndWrite = async (dir: string): Promise<void> => {
+    const fileUri = await SAF.createFileAsync(dir, baseName, mimeType);
+    await FileSystem.writeAsStringAsync(fileUri, data, { encoding });
+  };
+
+  if (dirUri) {
+    try {
+      await createAndWrite(dirUri);
+      return { status: 'saved' };
+    } catch {
+      // The saved grant is stale (folder deleted, permission revoked, OS
+      // cleared it). Drop it and fall through to ask again.
+      await clearDownloadDir();
+      dirUri = null;
+    }
+  }
+
+  const perm = await SAF.requestDirectoryPermissionsAsync();
+  if (!perm.granted) return { status: 'cancelled' };
+  await saveDownloadDir(perm.directoryUri);
+  await createAndWrite(perm.directoryUri);
+  return { status: 'saved' };
+}
+
+async function saveToDevice(
+  baseName: string,
+  mimeType: string,
+  data: string,
+  encoding: FileSystem.EncodingType,
+): Promise<SaveResult> {
+  if (Platform.OS === 'android') {
+    return writeToUserFolder(baseName, mimeType, data, encoding);
+  }
+  // iOS: hand the file to the system sheet ("Save to Files").
+  const ext = mimeType === 'application/pdf' ? 'pdf' : 'csv';
+  const path = `${cacheDir()}${baseName}.${ext}`;
+  await FileSystem.writeAsStringAsync(path, data, { encoding });
+  await Sharing.shareAsync(path, { mimeType });
+  return { status: 'shared' };
+}
+
+export async function downloadCSV(
+  file: ExpenseFile,
+  originalExpenses?: Expense[],
+): Promise<SaveResult> {
+  const indexMap = buildIndexMap(originalExpenses ?? file.expenses);
+  const csv = buildCsv(file, indexMap);
+  return saveToDevice(
+    safeFileName(file.name),
+    'text/csv',
+    csv,
+    FileSystem.EncodingType.UTF8,
+  );
+}
+
+export async function downloadPDF(
+  file: ExpenseFile,
+  originalExpenses?: Expense[],
+  currency?: CurrencyFormat,
+): Promise<SaveResult> {
+  const indexMap = buildIndexMap(originalExpenses ?? file.expenses);
+  const html = buildHtml(file, indexMap, currency);
+  const { uri } = await Print.printToFileAsync({ html, base64: false });
+  try {
+    const b64 = await readFileBase64(uri);
+    return await saveToDevice(
+      safeFileName(file.name),
+      'application/pdf',
+      b64,
+      FileSystem.EncodingType.Base64,
+    );
+  } finally {
+    try { await FileSystem.deleteAsync(uri, { idempotent: true }); } catch { /* ignore */ }
+  }
 }
 
 // ── Bulk export: every file zipped together ──────────────────────

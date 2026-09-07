@@ -10,6 +10,7 @@ const KEYS = {
   firstLaunch:  '@quickexpenses/first_launch',
   seeded:       '@quickexpenses/seeded',
   reminder:     '@quickexpenses/reminder',
+  downloadDir:  '@quickexpenses/download_dir',
 } as const;
 
 // ── Files ────────────────────────────────────────────────────────
@@ -137,6 +138,31 @@ export async function saveReminderPrefs(prefs: ReminderPrefs): Promise<void> {
   } catch (e) {
     captureError(e, { op: 'saveReminderPrefs' });
   }
+}
+
+// ── Download folder (Android Storage Access Framework) ───────────
+// The content:// URI of the folder the user last picked to save exports
+// into, so we don't prompt for it on every download.
+export async function loadDownloadDir(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(KEYS.downloadDir);
+  } catch {
+    return null;
+  }
+}
+
+export async function saveDownloadDir(uri: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.downloadDir, uri);
+  } catch (e) {
+    captureError(e, { op: 'saveDownloadDir' });
+  }
+}
+
+export async function clearDownloadDir(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(KEYS.downloadDir);
+  } catch { /* non-critical */ }
 }
 
 // ── Nuclear option ───────────────────────────────────────────────

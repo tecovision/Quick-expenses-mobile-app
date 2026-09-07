@@ -35,7 +35,7 @@ import {
   MAX_NOTE_LENGTH,
 } from '@/utils/helpers';
 import { useCurrency } from '@/hooks/useCurrency';
-import { exportToPDF, exportToCSV } from '@/services/export';
+import { exportToPDF, exportToCSV, downloadPDF, downloadCSV } from '@/services/export';
 import { deleteAttachment } from '@/services/attachments';
 import { pickPhoto, PhotoSource } from '@/services/photoPicker';
 import { captureError } from '@/services/monitoring';
@@ -507,14 +507,35 @@ export default function FileScreen() {
     return true;
   };
 
-  const runExport = async (type: 'pdf' | 'csv') => {
+  // Share → hand the file to the system share sheet.
+  const runShare = async (type: 'pdf' | 'csv') => {
     setExporting(true);
     try {
       if (type === 'pdf') await exportToPDF(exportFile, file.expenses, currency);
       else await exportToCSV(exportFile, file.expenses, currency);
     } catch (e) {
-      captureError(e, { op: 'exportFile', format: type, count: file.expenses.length });
+      captureError(e, { op: 'shareFile', format: type, count: file.expenses.length });
       Alert.alert('Failed', 'Something went wrong. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Download → write the file straight into a folder on the device.
+  const runDownload = async (type: 'pdf' | 'csv') => {
+    setExporting(true);
+    try {
+      const result = type === 'pdf'
+        ? await downloadPDF(exportFile, file.expenses, currency)
+        : await downloadCSV(exportFile, file.expenses);
+      if (result.status === 'saved') {
+        Alert.alert('Saved', `Your ${type.toUpperCase()} file was saved to your device.`);
+      }
+      // 'shared' (iOS) — the system sheet already gave feedback.
+      // 'cancelled' — the user backed out of the folder picker; stay silent.
+    } catch (e) {
+      captureError(e, { op: 'downloadFile', format: type, count: file.expenses.length });
+      Alert.alert('Failed', 'Could not save the file. Please try again.');
     } finally {
       setExporting(false);
     }
@@ -524,8 +545,8 @@ export default function FileScreen() {
     if (!requireExpenses()) return;
     const title = isSearching ? `Download "${searchQuery}" results` : 'Download as';
     Alert.alert(title, 'Choose a format', [
-      { text: 'PDF',         onPress: () => runExport('pdf') },
-      { text: 'Excel (CSV)', onPress: () => runExport('csv') },
+      { text: 'PDF',         onPress: () => runDownload('pdf') },
+      { text: 'Excel (CSV)', onPress: () => runDownload('csv') },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -534,8 +555,8 @@ export default function FileScreen() {
     if (!requireExpenses()) return;
     const title = isSearching ? `Share "${searchQuery}" results` : 'Share as';
     Alert.alert(title, 'Choose a format', [
-      { text: 'PDF',         onPress: () => runExport('pdf') },
-      { text: 'Excel (CSV)', onPress: () => runExport('csv') },
+      { text: 'PDF',         onPress: () => runShare('pdf') },
+      { text: 'Excel (CSV)', onPress: () => runShare('csv') },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };

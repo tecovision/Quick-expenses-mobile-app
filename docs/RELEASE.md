@@ -73,7 +73,7 @@ actually publish.
 
 ```bash
 npm run type-check     # must pass
-npm test               # must pass (49 tests)
+npm test               # must pass (53 tests)
 npx expo-doctor        # must be 18/18
 ```
 
@@ -297,7 +297,13 @@ on a device. Walk these on at least two different phones:
       confirm the "Already Added" prompt appears
 - [ ] **Rounding**: enter `100.005` → it shows `100.01`; export PDF and CSV →
       both show `100.01`, and the CSV total matches
-- [ ] **Export**: PDF and CSV from a file; verify notes appear in both
+- [ ] **Download**: tap the download icon → pick PDF or CSV → the Android
+      folder picker appears the first time → the file lands in that folder and
+      opens from the device's Files/Downloads app. Second download skips the
+      picker
+- [ ] **Share**: the share icon still opens the system share sheet (separate
+      from Download)
+- [ ] **Export**: verify notes appear in both the PDF and the CSV
 - [ ] **Export all as ZIP** from Settings with several files
 - [ ] **Delete + undo** an entry; delete a file and restore from Recently Deleted
 - [ ] **Rotate / small screen / large font** (Settings → Display → Font size: max)
