@@ -50,10 +50,10 @@ if (
 }
 
 // ── Column widths ─────────────────────────────────────────────
-const COL_NO     = 36;
-const COL_AMOUNT = 96;
-const COL_PENCIL = 28;
-const COL_DELETE = 26;
+const COL_NO     = 34;
+const COL_AMOUNT = 94;
+const COL_PENCIL = 24;
+const COL_DELETE = 22;
 const DELETE_W   = 72;   // swipe-left reveal width for delete action
 
 // The table has fixed-width numeric columns, so let its dense cells scale
@@ -752,7 +752,7 @@ export default function FileScreen() {
                 style={[styles.inputCell, styles.grow]}
                 value={particular}
                 onChangeText={setParticular}
-                placeholder="Expense description"
+                placeholder="Description"
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 cursorColor={colors.white}
                 selectionColor={colors.white}
@@ -761,6 +761,10 @@ export default function FileScreen() {
                 onSubmitEditing={() => amountRef.current?.focus()}
                 maxLength={MAX_PARTICULAR_LENGTH}
                 maxFontSizeMultiplier={TABLE_FONT_CAP}
+                // Single line — Android wraps a too-wide placeholder onto a
+                // second line inside this narrow column and clips it otherwise.
+                numberOfLines={1}
+                multiline={false}
               />
 
               <TouchableOpacity
@@ -793,6 +797,8 @@ export default function FileScreen() {
                 onSubmitEditing={handleAdd}
                 maxLength={15}
                 maxFontSizeMultiplier={TABLE_FONT_CAP}
+                numberOfLines={1}
+                multiline={false}
               />
 
               <View style={[styles.inputBtnCluster, { width: COL_PENCIL + COL_DELETE }]}>
