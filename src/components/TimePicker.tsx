@@ -4,7 +4,7 @@ import {
   TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, typography, spacing, radius } from '../constants/theme';
 import { formatTime } from '../utils/helpers';
 

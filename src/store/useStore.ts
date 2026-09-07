@@ -7,6 +7,7 @@ import {
   isFirstLaunch, markLaunched,
   hasSeeded, markSeeded,
   loadReminderPrefs, saveReminderPrefs, DEFAULT_REMINDER, ReminderPrefs,
+  hasAcknowledgedNotice, markNoticeAcknowledged,
 } from '../services/storage';
 import { deleteAttachment } from '../services/attachments';
 import {
@@ -32,10 +33,14 @@ interface StoreState {
   currency: Currency;
   isLoading: boolean;
   showCurrencyPickerOnLaunch: boolean;
+  showFirstRunNotice: boolean;
   reminder: ReminderPrefs;
 
   loadData: () => Promise<void>;
   getFile: (id: string) => ExpenseFile | undefined;
+
+  /** Dismiss the one-time privacy / terms notice. */
+  acknowledgeFirstRunNotice: () => void;
 
   // ── Daily reminder ─────────────────────────────────────────────
   /** Turn the reminder on/off. Returns false if permission was denied. */
@@ -79,16 +84,18 @@ export const useStore = create<StoreState>((set, get) => ({
   currency: DEFAULT_CURRENCY,
   isLoading: true,
   showCurrencyPickerOnLaunch: false,
+  showFirstRunNotice: false,
   reminder: DEFAULT_REMINDER,
 
   loadData: async () => {
-    const [files, allDeletedFiles, currency, firstLaunch, seeded, reminder] = await Promise.all([
+    const [files, allDeletedFiles, currency, firstLaunch, seeded, reminder, noticeAck] = await Promise.all([
       loadFiles(),
       loadDeletedFiles(),
       loadCurrency(),
       isFirstLaunch(),
       hasSeeded(),
       loadReminderPrefs(),
+      hasAcknowledgedNotice(),
     ]);
 
     // Re-assert the scheduled reminder on every launch — cheap, and it
@@ -135,11 +142,17 @@ export const useStore = create<StoreState>((set, get) => ({
       currency,
       isLoading: false,
       showCurrencyPickerOnLaunch: firstLaunch,
+      showFirstRunNotice: !noticeAck,
       reminder,
     });
   },
 
   getFile: (id) => get().files.find(f => f.id === id),
+
+  acknowledgeFirstRunNotice: () => {
+    set({ showFirstRunNotice: false });
+    markNoticeAcknowledged(); // fire-and-forget
+  },
 
   addFile: (name) => {
     const file: ExpenseFile = {

@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/store/useStore';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { UndoToast } from '@/components/UndoToast';
@@ -35,7 +35,7 @@ import {
   MAX_NOTE_LENGTH,
 } from '@/utils/helpers';
 import { useCurrency } from '@/hooks/useCurrency';
-import { exportToPDF, exportToCSV, downloadPDF, downloadCSV } from '@/services/export';
+import { exportToPDF, exportToCSV, downloadPDF, downloadCSV, openSavedFile } from '@/services/export';
 import { deleteAttachment } from '@/services/attachments';
 import { pickPhoto, PhotoSource } from '@/services/photoPicker';
 import { captureError } from '@/services/monitoring';
@@ -529,7 +529,21 @@ export default function FileScreen() {
         ? await downloadPDF(exportFile, file.expenses, currency)
         : await downloadCSV(exportFile, file.expenses);
       if (result.status === 'saved') {
-        Alert.alert('Saved', `Your ${type.toUpperCase()} file was saved to your device.`);
+        Alert.alert(
+          'Saved',
+          `Your ${type.toUpperCase()} file was saved to your device.`,
+          [
+            {
+              text: 'Open',
+              onPress: () =>
+                openSavedFile(result.uri, result.mimeType).catch((e) => {
+                  captureError(e, { op: 'openSavedFile', format: type });
+                  Alert.alert('Can’t Open', `No app on your device can open ${type.toUpperCase()} files.`);
+                }),
+            },
+            { text: 'Done', style: 'cancel' },
+          ]
+        );
       }
       // 'shared' (iOS) — the system sheet already gave feedback.
       // 'cancelled' — the user backed out of the folder picker; stay silent.

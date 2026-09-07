@@ -11,6 +11,7 @@ const KEYS = {
   seeded:       '@quickexpenses/seeded',
   reminder:     '@quickexpenses/reminder',
   downloadDir:  '@quickexpenses/download_dir',
+  noticeAck:    '@quickexpenses/notice_ack',
 } as const;
 
 // ── Files ────────────────────────────────────────────────────────
@@ -107,6 +108,23 @@ export async function hasSeeded(): Promise<boolean> {
 export async function markSeeded(): Promise<void> {
   try {
     await AsyncStorage.setItem(KEYS.seeded, '1');
+  } catch { /* non-critical */ }
+}
+
+// ── First-run privacy / terms notice ────────────────────────────
+// Tracked separately from firstLaunch so an existing install that updates
+// into this version still sees the notice once.
+export async function hasAcknowledgedNotice(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(KEYS.noticeAck)) !== null;
+  } catch {
+    return true; // on error, don't nag
+  }
+}
+
+export async function markNoticeAcknowledged(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.noticeAck, '1');
   } catch { /* non-critical */ }
 }
 

@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as IntentLauncher from 'expo-intent-launcher';
 import JSZip from 'jszip';
 import { Currency, Expense, ExpenseFile } from '../types';
 import { formatCurrency, fileTotal, formatDate, formatDateTime } from '../utils/helpers';
@@ -11,9 +12,26 @@ type CurrencyFormat = Pick<Currency, 'symbol' | 'locale'>;
 
 /** Result of a "save to device" request. */
 export type SaveResult =
-  | { status: 'saved' }       // written to the folder the user picked (Android)
-  | { status: 'shared' }      // handed to the system (iOS — no shared folder)
-  | { status: 'cancelled' };  // user dismissed the folder picker
+  | { status: 'saved'; uri: string; mimeType: string }  // written to the folder the user picked (Android)
+  | { status: 'shared' }                                // handed to the system (iOS — no shared folder)
+  | { status: 'cancelled' };                            // user dismissed the folder picker
+
+/**
+ * Open a just-saved file in whatever app the device uses for that type.
+ * Android: an ACTION_VIEW intent with a temporary read grant. iOS: the
+ * share sheet. Throws if nothing can handle the file.
+ */
+export async function openSavedFile(uri: string, mimeType: string): Promise<void> {
+  if (Platform.OS === 'android') {
+    await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+      data: uri,
+      flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+      type: mimeType,
+    });
+    return;
+  }
+  await Sharing.shareAsync(uri, { mimeType });
+}
 
 /** Exported for tests. Strips path separators and other unsafe characters. */
 export const safeFileName = (name: string): string =>
@@ -184,15 +202,16 @@ async function writeToUserFolder(
 ): Promise<SaveResult> {
   let dirUri = await loadDownloadDir();
 
-  const createAndWrite = async (dir: string): Promise<void> => {
+  const createAndWrite = async (dir: string): Promise<string> => {
     const fileUri = await SAF.createFileAsync(dir, baseName, mimeType);
     await FileSystem.writeAsStringAsync(fileUri, data, { encoding });
+    return fileUri;
   };
 
   if (dirUri) {
     try {
-      await createAndWrite(dirUri);
-      return { status: 'saved' };
+      const uri = await createAndWrite(dirUri);
+      return { status: 'saved', uri, mimeType };
     } catch {
       // The saved grant is stale (folder deleted, permission revoked, OS
       // cleared it). Drop it and fall through to ask again.
@@ -204,8 +223,8 @@ async function writeToUserFolder(
   const perm = await SAF.requestDirectoryPermissionsAsync();
   if (!perm.granted) return { status: 'cancelled' };
   await saveDownloadDir(perm.directoryUri);
-  await createAndWrite(perm.directoryUri);
-  return { status: 'saved' };
+  const uri = await createAndWrite(perm.directoryUri);
+  return { status: 'saved', uri, mimeType };
 }
 
 async function saveToDevice(

@@ -20,6 +20,7 @@ function resetStore() {
     deletedFiles: [],
     isLoading: true,
     showCurrencyPickerOnLaunch: false,
+    showFirstRunNotice: false,
     reminder: { enabled: false, hour: 20, minute: 0 },
   });
 }
@@ -47,6 +48,7 @@ beforeEach(() => {
   mockedStorage.isFirstLaunch.mockResolvedValue(false);
   mockedStorage.hasSeeded.mockResolvedValue(true);
   mockedStorage.loadReminderPrefs.mockResolvedValue({ enabled: false, hour: 20, minute: 0 });
+  mockedStorage.hasAcknowledgedNotice.mockResolvedValue(true);
   mockedNotifications.requestNotificationPermission.mockResolvedValue(true);
   mockedNotifications.scheduleDailyReminder.mockResolvedValue(undefined);
   mockedNotifications.cancelDailyReminder.mockResolvedValue(undefined);
@@ -88,6 +90,24 @@ describe('loadData — default file seeding', () => {
     await useStore.getState().loadData();
 
     expect(useStore.getState().files.map(f => f.name)).toEqual(['My Real Data']);
+  });
+});
+
+describe('first-run notice', () => {
+  it('shows on load when never acknowledged', async () => {
+    mockedStorage.hasAcknowledgedNotice.mockResolvedValue(false);
+    await useStore.getState().loadData();
+    expect(useStore.getState().showFirstRunNotice).toBe(true);
+  });
+
+  it('stays hidden once acknowledged, and persists the flag', async () => {
+    mockedStorage.hasAcknowledgedNotice.mockResolvedValue(false);
+    await useStore.getState().loadData();
+
+    useStore.getState().acknowledgeFirstRunNotice();
+
+    expect(useStore.getState().showFirstRunNotice).toBe(false);
+    expect(mockedStorage.markNoticeAcknowledged).toHaveBeenCalled();
   });
 });
 

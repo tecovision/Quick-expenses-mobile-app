@@ -2,7 +2,7 @@
   "expo": {
     "name": "QuickExpenses",
     "slug": "quickexpenses",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -48,6 +48,15 @@
         "expo-notifications",
         {
           "color": "#1C1C1E"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
         }
       ]
     ],

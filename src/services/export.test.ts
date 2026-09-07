@@ -6,6 +6,7 @@ import { ExpenseFile } from '../types';
 jest.mock('./storage');
 jest.mock('expo-print', () => ({ printToFileAsync: jest.fn() }));
 jest.mock('expo-sharing', () => ({ shareAsync: jest.fn() }));
+jest.mock('expo-intent-launcher', () => ({ startActivityAsync: jest.fn() }));
 jest.mock('expo-file-system/legacy', () => ({
   cacheDirectory: 'file:///cache/',
   EncodingType: { UTF8: 'utf8', Base64: 'base64' },
@@ -120,7 +121,11 @@ describe('downloadCSV (Android)', () => {
 
     const res = await downloadCSV(makeFile());
 
-    expect(res).toEqual({ status: 'saved' });
+    expect(res).toEqual({
+      status: 'saved',
+      uri: 'content://downloads/June_Trip.csv',
+      mimeType: 'text/csv',
+    });
     expect(SAF.requestDirectoryPermissionsAsync).not.toHaveBeenCalled();
     expect(SAF.createFileAsync).toHaveBeenCalledWith(
       'content://tree/downloads', 'June_Trip', 'text/csv'
@@ -133,7 +138,7 @@ describe('downloadCSV (Android)', () => {
 
     const res = await downloadCSV(makeFile());
 
-    expect(res).toEqual({ status: 'saved' });
+    expect(res.status).toBe('saved');
     expect(SAF.requestDirectoryPermissionsAsync).toHaveBeenCalled();
     expect(mockedStorage.saveDownloadDir).toHaveBeenCalledWith('content://tree/downloads');
   });
@@ -146,7 +151,7 @@ describe('downloadCSV (Android)', () => {
 
     const res = await downloadCSV(makeFile());
 
-    expect(res).toEqual({ status: 'saved' });
+    expect(res.status).toBe('saved');
     expect(mockedStorage.clearDownloadDir).toHaveBeenCalled();
     expect(SAF.requestDirectoryPermissionsAsync).toHaveBeenCalled();
   });

@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/store/useStore';
 import { FileCard } from '@/components/FileCard';
 import { EmptyState } from '@/components/EmptyState';
@@ -32,6 +32,7 @@ export default function HomeScreen() {
   const showOnLaunch    = useStore(s => s.showCurrencyPickerOnLaunch);
   const markPickerShown = useStore(s => s.markCurrencyPickerShown);
   const loadData        = useStore(s => s.loadData);
+  const noticeVisible   = useStore(s => s.showFirstRunNotice);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -45,12 +46,14 @@ export default function HomeScreen() {
   const searchRef = useRef<TextInput>(null);
 
   useEffect(() => {
-    if (showOnLaunch) {
+    // Wait for the one-time privacy / terms notice to be dismissed before
+    // popping the currency picker, so two full-screen modals never stack.
+    if (showOnLaunch && !noticeVisible) {
       setIsFirstLaunch(true);
       setShowCurrencyPicker(true);
       markPickerShown();
     }
-  }, [showOnLaunch]);
+  }, [showOnLaunch, noticeVisible]);
 
   const toggleSearch = () => {
     if (searchOpen) {
@@ -106,7 +109,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={require('../assets/icon.png')}
+            source={require('../assets/logo.png')}
             style={styles.logo}
             resizeMode="contain"
           />

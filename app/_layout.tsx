@@ -4,6 +4,7 @@ import { useEffect, Component, ReactNode, ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useStore } from '@/store/useStore';
+import { FirstRunNotice } from '@/components/FirstRunNotice';
 import { initMonitoring, captureError } from '@/services/monitoring';
 
 // Start crash reporting before anything else can throw. No-ops without a DSN.
@@ -50,6 +51,8 @@ const eb = StyleSheet.create({
 function RootLayout() {
   const loadData = useStore((s) => s.loadData);
   const isLoading = useStore((s) => s.isLoading);
+  const showFirstRunNotice = useStore((s) => s.showFirstRunNotice);
+  const acknowledgeFirstRunNotice = useStore((s) => s.acknowledgeFirstRunNotice);
 
   useEffect(() => {
     loadData()
@@ -82,6 +85,7 @@ function RootLayout() {
           animationTypeForReplace: 'pop',
         }}
       />
+      <FirstRunNotice visible={showFirstRunNotice} onAccept={acknowledgeFirstRunNotice} />
     </>
   );
 }

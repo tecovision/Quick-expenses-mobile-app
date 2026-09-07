@@ -13,7 +13,7 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Expense } from '../types';
 import { colors, typography, spacing, radius } from '../constants/theme';
 import { deleteAttachment } from '../services/attachments';

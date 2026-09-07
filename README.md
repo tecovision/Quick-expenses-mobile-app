@@ -8,7 +8,7 @@ A mobile expense tracker built with React Native and Expo SDK 54.
 
 - Create expense files and track particulars with amounts
 - Search, edit, and delete entries with undo support
-- Export to PDF or CSV (Excel)
+- Download to a device folder, or share, as PDF or CSV (Excel)
 - Multi-currency support (30 currencies)
 - Optional local daily reminder to log expenses
 - Recently Deleted with 30-day recovery window
@@ -92,11 +92,15 @@ Quick-expenses-mobile-app/
 │   │   ├── EmptyState.tsx      # Empty list placeholder
 │   │   ├── ExpenseForm.tsx     # Add / edit expense modal
 │   │   ├── CurrencyPicker.tsx  # Currency selection modal
+│   │   ├── TimePicker.tsx      # Reminder-time selection modal
+│   │   ├── FirstRunNotice.tsx  # One-time privacy / terms notice
+│   │   ├── PhotoViewer.tsx     # Fullscreen pinch-zoom photo viewer
 │   │   └── UndoToast.tsx       # Undo delete toast
 │   │
 │   ├── constants/
 │   │   ├── theme.ts            # Colors, typography, spacing
-│   │   └── currencies.ts       # 30+ supported currencies
+│   │   ├── legal.ts            # Privacy policy / terms URLs
+│   │   └── currencies.ts       # 30 supported currencies
 │   │
 │   ├── hooks/
 │   │   └── useCurrency.ts      # Currency formatting hook
@@ -104,7 +108,8 @@ Quick-expenses-mobile-app/
 │   ├── services/
 │   │   ├── storage.ts          # AsyncStorage read/write
 │   │   ├── notifications.ts    # Local daily-reminder scheduling
-│   │   └── export.ts           # PDF and CSV generation
+│   │   ├── attachments.ts      # Photo attachment persistence
+│   │   └── export.ts           # PDF / CSV generation, download & share
 │   │
 │   ├── store/
 │   │   └── useStore.ts         # Zustand global state

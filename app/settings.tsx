@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import { useStore } from '@/store/useStore';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
@@ -13,6 +13,7 @@ import { TimePicker } from '@/components/TimePicker';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { Currency } from '@/types';
 import { formatTime } from '@/utils/helpers';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/legal';
 import { exportAllAsZip } from '@/services/export';
 import { captureError } from '@/services/monitoring';
 
@@ -228,6 +229,34 @@ export default function SettingsScreen() {
         {/* About */}
         <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>ABOUT</Text>
         <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="shield-checkmark-outline" size={18} color={colors.accent} />
+              </View>
+              <Text style={styles.rowTitle}>Privacy Policy</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => Linking.openURL(TERMS_URL)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="document-text-outline" size={18} color={colors.accent} />
+              </View>
+              <Text style={styles.rowTitle}>Terms of Use</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+
           <View style={[styles.row, { borderBottomWidth: 0 }]}>
             <View style={styles.rowLeft}>
               <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
