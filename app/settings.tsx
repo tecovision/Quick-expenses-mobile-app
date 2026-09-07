@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator,
+  Alert, ActivityIndicator, Switch, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -9,8 +9,10 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useStore } from '@/store/useStore';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
+import { TimePicker } from '@/components/TimePicker';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { Currency } from '@/types';
+import { formatTime } from '@/utils/helpers';
 import { exportAllAsZip } from '@/services/export';
 import { captureError } from '@/services/monitoring';
 
@@ -20,8 +22,39 @@ export default function SettingsScreen() {
   const deletedFiles  = useStore(s => s.deletedFiles);
   const files         = useStore(s => s.files);
 
+  const reminder           = useStore(s => s.reminder);
+  const setReminderEnabled = useStore(s => s.setReminderEnabled);
+  const setReminderTime    = useStore(s => s.setReminderTime);
+
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [bulkExporting, setBulkExporting] = useState(false);
+  const [togglingReminder, setTogglingReminder] = useState(false);
+
+  const handleReminderToggle = async (next: boolean) => {
+    if (togglingReminder) return;
+    setTogglingReminder(true);
+    try {
+      const ok = await setReminderEnabled(next);
+      if (next && !ok) {
+        Alert.alert(
+          'Notifications Off',
+          'Turn on notifications for QuickExpenses in system settings to get daily reminders.',
+          [
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            { text: 'Not Now', style: 'cancel' },
+          ]
+        );
+      }
+    } finally {
+      setTogglingReminder(false);
+    }
+  };
+
+  const handleTimeSelect = (hour: number, minute: number) => {
+    setShowTimePicker(false);
+    setReminderTime(hour, minute);
+  };
 
   const runBulkExport = async (format: 'pdf' | 'csv') => {
     if (files.length === 0) {
@@ -93,6 +126,50 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
+        </View>
+
+        {/* Reminders */}
+        <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>REMINDERS</Text>
+        <View style={styles.card}>
+          <View style={[styles.row, reminder.enabled ? null : { borderBottomWidth: 0 }]}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="notifications-outline" size={18} color={colors.accent} />
+              </View>
+              <View style={styles.rowTextWrap}>
+                <Text style={styles.rowTitle}>Daily reminder</Text>
+                <Text style={styles.rowSub}>A nudge to log the day's expenses</Text>
+              </View>
+            </View>
+            {togglingReminder ? (
+              <ActivityIndicator size="small" color={colors.accent} />
+            ) : (
+              <Switch
+                value={reminder.enabled}
+                onValueChange={handleReminderToggle}
+                trackColor={{ true: colors.accent, false: colors.borderLight }}
+              />
+            )}
+          </View>
+
+          {reminder.enabled && (
+            <TouchableOpacity
+              style={[styles.row, { borderBottomWidth: 0 }]}
+              onPress={() => setShowTimePicker(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.rowLeft}>
+                <View style={styles.iconWrap}>
+                  <Ionicons name="time-outline" size={18} color={colors.textMuted} />
+                </View>
+                <Text style={styles.rowTitle}>Reminder time</Text>
+              </View>
+              <View style={styles.rowRight}>
+                <Text style={styles.rowValue}>{formatTime(reminder.hour, reminder.minute)}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Backup */}
@@ -172,6 +249,15 @@ export default function SettingsScreen() {
         onClose={() => setShowCurrencyPicker(false)}
       />
 
+      {/* Reminder time picker */}
+      <TimePicker
+        visible={showTimePicker}
+        hour={reminder.hour}
+        minute={reminder.minute}
+        onSelect={handleTimeSelect}
+        onClose={() => setShowTimePicker(false)}
+      />
+
     </SafeAreaView>
   );
 }
@@ -221,10 +307,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderLight,
   },
   rowLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
   },
+  rowTextWrap: { flex: 1 },
   rowRight: {
     flexDirection: 'row',
     alignItems: 'center',

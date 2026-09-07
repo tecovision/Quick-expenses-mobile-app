@@ -122,13 +122,15 @@ function buildCsv(file: ExpenseFile, indexMap: Map<string, number>): string {
       return [
         sno,
         csvCell(e.particular),
-        e.amount,
+        // Fixed 2 decimals so the CSV matches the on-screen and PDF amount
+        // exactly. Still a bare (unquoted) number, so Excel/Sheets sum it.
+        e.amount.toFixed(2),
         csvCell(e.note ?? ''),
         csvCell(formatDateTime(e.createdAt)),
       ].join(',');
     })
     .join('\n');
-  const footer = `\nTotal,,${fileTotal(file.expenses)},,`;
+  const footer = `\nTotal,,${fileTotal(file.expenses).toFixed(2)},,`;
   return header + rows + footer;
 }
 

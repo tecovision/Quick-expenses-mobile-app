@@ -40,6 +40,17 @@ describe('parseAmount', () => {
     expect(parseAmount(String(MAX_EXPENSE_AMOUNT))).toBe(MAX_EXPENSE_AMOUNT);
     expect(parseAmount(String(MAX_EXPENSE_AMOUNT + 1))).toBeNull();
   });
+
+  it('rounds to 2 decimals at entry so stored = displayed = exported', () => {
+    expect(parseAmount('100.005')).toBe(100.01);
+    expect(parseAmount('100.004')).toBe(100);
+    expect(parseAmount('1.999')).toBe(2);
+  });
+
+  it('rejects amounts that round down to zero', () => {
+    expect(parseAmount('0.004')).toBeNull();
+    expect(parseAmount('0.0000001')).toBeNull();
+  });
 });
 
 describe('fileTotal', () => {
@@ -49,6 +60,11 @@ describe('fileTotal', () => {
 
   it('returns 0 for an empty list', () => {
     expect(fileTotal([])).toBe(0);
+  });
+
+  it('rounds away accumulated float drift', () => {
+    expect(fileTotal([{ amount: 0.1 }, { amount: 0.2 }])).toBe(0.3);
+    expect(fileTotal([{ amount: 100.01 }, { amount: 0.1 }, { amount: 0.2 }])).toBe(100.31);
   });
 });
 

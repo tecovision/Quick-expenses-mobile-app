@@ -56,6 +56,11 @@ const COL_PENCIL = 28;
 const COL_DELETE = 26;
 const DELETE_W   = 72;   // swipe-left reveal width for delete action
 
+// The table has fixed-width numeric columns, so let its dense cells scale
+// with the system font only up to a point before the layout would break.
+// Body text elsewhere (descriptions, notes) still scales without limit.
+const TABLE_FONT_CAP = 1.3;
+
 // ── Swipeable row ─────────────────────────────────────────────
 interface RowProps {
   expense: Expense;
@@ -129,7 +134,7 @@ const SwipeRow = React.memo(function SwipeRow({
           delayLongPress={350}
           android_ripple={{ color: 'rgba(0,0,0,0.04)' }}
         >
-          <Text style={[styles.indexText, styles.colCell, { width: COL_NO }]}>{index}</Text>
+          <Text style={[styles.indexText, styles.colCell, { width: COL_NO }]} maxFontSizeMultiplier={TABLE_FONT_CAP}>{index}</Text>
           <View style={styles.colDivider} />
 
           <View style={[styles.grow, styles.colCell]}>
@@ -142,11 +147,17 @@ const SwipeRow = React.memo(function SwipeRow({
                 <Ionicons name="document-text" size={11} color={colors.accent} style={styles.attachIcon} />
               )}
             </View>
-            <Text style={styles.dateTimeText}>{formatDateTime(expense.createdAt)}</Text>
+            <Text style={styles.dateTimeText} maxFontSizeMultiplier={TABLE_FONT_CAP}>{formatDateTime(expense.createdAt)}</Text>
           </View>
           <View style={styles.colDivider} />
 
-          <Text style={[styles.amountText, { width: COL_AMOUNT }]}>
+          <Text
+            style={[styles.amountText, { width: COL_AMOUNT }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+            maxFontSizeMultiplier={TABLE_FONT_CAP}
+          >
             {formatAmount(expense.amount)}
           </Text>
 
@@ -196,6 +207,7 @@ export default function FileScreen() {
   const amountRef     = useRef<TextInput>(null);
   const noteRef       = useRef<TextInput>(null);
   const scrollRef     = useRef<ScrollView>(null);
+  const didInitialScrollRef = useRef(false);
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [nameInput, setNameInput]   = useState('');
@@ -292,8 +304,11 @@ export default function FileScreen() {
     return file.expenses.filter(e => e.particular.toLowerCase().includes(q));
   }, [file?.expenses, searchQuery]);
 
+  // Chronological order — oldest first, newest just above the input row —
+  // so the S.No column always reads 1,2,3… top-to-bottom and a new entry
+  // appears where the user is looking rather than jumping to the top.
   const displayExpenses = useMemo(
-    () => [...filteredExpenses].reverse().filter(e => e.id !== pendingDeleteId),
+    () => filteredExpenses.filter(e => e.id !== pendingDeleteId),
     [filteredExpenses, pendingDeleteId]
   );
 
@@ -361,17 +376,7 @@ export default function FileScreen() {
     : file;
 
   // ── Handlers ──────────────────────────────────────────────────
-  const handleAdd = () => {
-    const trimmed = particular.trim();
-    const parsed  = parseAmount(amount);
-    if (!trimmed)        { particularRef.current?.focus(); return; }
-    if (parsed === null) {
-      if (amount.trim()) {
-        Alert.alert('Invalid Amount', 'Enter a positive amount up to 999,999,999,999.');
-      }
-      amountRef.current?.focus();
-      return;
-    }
+  const commitAdd = (trimmed: string, parsed: number) => {
     addExpense(file.id, trimmed, parsed, {
       note:     note.trim() || undefined,
       photoUri: photoUri || undefined,
@@ -386,7 +391,42 @@ export default function FileScreen() {
     // field on the next frame (after the state-clearing render flushes).
     // requestAnimationFrame is deterministic across debug and release builds,
     // unlike a fixed setTimeout that races the keyboard animation.
-    requestAnimationFrame(() => particularRef.current?.focus());
+    // Scroll the new row (appended at the bottom) into view.
+    requestAnimationFrame(() => {
+      particularRef.current?.focus();
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  };
+
+  const handleAdd = () => {
+    const trimmed = particular.trim();
+    const parsed  = parseAmount(amount);
+    if (!trimmed)        { particularRef.current?.focus(); return; }
+    if (parsed === null) {
+      if (amount.trim()) {
+        Alert.alert('Invalid Amount', 'Enter an amount between 0.01 and 999,999,999,999.');
+      }
+      amountRef.current?.focus();
+      return;
+    }
+
+    // Duplicate description → confirm before adding a second one.
+    const isDuplicate = file.expenses.some(
+      e => e.particular.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      Alert.alert(
+        'Already Added',
+        `"${trimmed}" is already in this file. Add it again anyway?`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => amountRef.current?.focus() },
+          { text: 'Add Anyway', onPress: () => commitAdd(trimmed, parsed) },
+        ]
+      );
+      return;
+    }
+
+    commitAdd(trimmed, parsed);
   };
 
   const attachPhoto = async (source: PhotoSource) => {
@@ -624,11 +664,11 @@ export default function FileScreen() {
 
           {/* Fixed blue column header — never scrolls */}
           <View style={styles.tableHead}>
-            <Text style={[styles.headCell, { width: COL_NO }]}>S.NO</Text>
+            <Text style={[styles.headCell, { width: COL_NO }]} maxFontSizeMultiplier={TABLE_FONT_CAP}>S.NO</Text>
             <View style={styles.colDividerLight} />
-            <Text style={[styles.headCell, styles.grow]}>Particulars</Text>
+            <Text style={[styles.headCell, styles.grow]} maxFontSizeMultiplier={TABLE_FONT_CAP}>Particulars</Text>
             <View style={styles.colDividerLight} />
-            <Text style={[styles.headCell, { width: COL_AMOUNT, textAlign: 'right' }]}>Amount</Text>
+            <Text style={[styles.headCell, { width: COL_AMOUNT, textAlign: 'right' }]} maxFontSizeMultiplier={TABLE_FONT_CAP}>Amount</Text>
             <View style={{ width: COL_PENCIL + COL_DELETE }} />
           </View>
 
@@ -642,6 +682,14 @@ export default function FileScreen() {
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
             onScrollBeginDrag={() => Keyboard.dismiss()}
+            onContentSizeChange={() => {
+              // Land on the most recent entries (and the input row) when the
+              // file first opens, instead of the oldest entry at the top.
+              if (!didInitialScrollRef.current && displayExpenses.length > 0) {
+                didInitialScrollRef.current = true;
+                scrollRef.current?.scrollToEnd({ animated: false });
+              }
+            }}
           >
             {/* No results (search) */}
             {filteredExpenses.length === 0 && isSearching && (
@@ -694,7 +742,7 @@ export default function FileScreen() {
           {/* Fixed blue input row — always visible at the bottom of the card */}
           {!isSearching && (
             <View style={styles.inputRow}>
-              <Text style={[styles.indexText, styles.inputIndex]}>
+              <Text style={[styles.indexText, styles.inputIndex]} maxFontSizeMultiplier={TABLE_FONT_CAP}>
                 {file.expenses.length + 1}
               </Text>
               <View style={styles.colDividerLight} />
@@ -712,6 +760,7 @@ export default function FileScreen() {
                 blurOnSubmit={false}
                 onSubmitEditing={() => amountRef.current?.focus()}
                 maxLength={MAX_PARTICULAR_LENGTH}
+                maxFontSizeMultiplier={TABLE_FONT_CAP}
               />
 
               <TouchableOpacity
@@ -743,6 +792,7 @@ export default function FileScreen() {
                 blurOnSubmit={false}
                 onSubmitEditing={handleAdd}
                 maxLength={15}
+                maxFontSizeMultiplier={TABLE_FONT_CAP}
               />
 
               <View style={[styles.inputBtnCluster, { width: COL_PENCIL + COL_DELETE }]}>

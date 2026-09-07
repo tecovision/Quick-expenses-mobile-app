@@ -110,7 +110,9 @@ export default function HomeScreen() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.title}>QuickExpenses</Text>
+          <Text style={styles.title} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+            QuickExpenses
+          </Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity
@@ -258,6 +260,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   headerLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -269,6 +272,7 @@ const styles = StyleSheet.create({
   },
   logo:  { width: 36, height: 36, borderRadius: 10 },
   title: {
+    flexShrink: 1,
     fontSize: typography.sizes.xxl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,

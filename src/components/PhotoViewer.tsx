@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   NativeTouchEvent,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/theme';
 
@@ -26,6 +27,7 @@ const DOUBLE_TAP_MS    = 280;
  * one-finger pan while zoomed. Pure Animated + PanResponder — no extra deps.
  */
 export function PhotoViewer({ uri, onClose }: Props) {
+  const insets = useSafeAreaInsets();
   const scale      = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
@@ -136,7 +138,7 @@ export function PhotoViewer({ uri, onClose }: Props) {
           />
         )}
         <TouchableOpacity
-          style={styles.close}
+          style={[styles.close, { top: Math.max(insets.top, 12) + 8 }]}
           onPress={onClose}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           accessibilityRole="button"
@@ -159,7 +161,6 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '85%' },
   close: {
     position: 'absolute',
-    top: 40,
     right: 20,
     padding: 8,
   },

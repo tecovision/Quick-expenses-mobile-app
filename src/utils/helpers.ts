@@ -15,14 +15,29 @@ export const MAX_PARTICULAR_LENGTH = 200;
 export const MAX_NOTE_LENGTH = 1000;
 
 /**
- * Parse user-entered amount text. Returns the numeric value, or null when
- * the input is not a positive finite number within MAX_EXPENSE_AMOUNT
- * (rejects "", "abc", "1e99" → Infinity, negatives and zero).
+ * Round a money value to 2 decimal places using "round half away from zero"
+ * (so 100.005 → 100.01, matching what users see on screen). The epsilon
+ * nudge corrects binary-float representation error before rounding.
+ */
+export function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Parse user-entered amount text. Returns the value rounded to 2 decimal
+ * places, or null when the input is not a positive finite number within
+ * MAX_EXPENSE_AMOUNT (rejects "", "abc", "1e99" → Infinity, negatives, and
+ * anything that rounds to zero such as "0" or "0.004").
+ *
+ * Rounding at the point of entry is what keeps the stored value, the
+ * on-screen amount, and the PDF/CSV export all showing the same number.
  */
 export function parseAmount(text: string): number | null {
   const value = Number(text.trim());
   if (!Number.isFinite(value) || value <= 0 || value > MAX_EXPENSE_AMOUNT) return null;
-  return value;
+  const rounded = roundMoney(value);
+  if (rounded <= 0) return null;
+  return rounded;
 }
 
 export function formatCurrency(
@@ -42,7 +57,9 @@ export function formatCurrency(
 }
 
 export function fileTotal(expenses: { amount: number }[]): number {
-  return expenses.reduce((sum, e) => sum + e.amount, 0);
+  // Round the running sum so accumulated float drift (0.1 + 0.2 …) never
+  // leaks a third decimal into totals shown on screen or written to exports.
+  return roundMoney(expenses.reduce((sum, e) => sum + e.amount, 0));
 }
 
 export function formatDate(isoString: string): string {
@@ -66,6 +83,13 @@ export function formatDateTime(isoString: string): string {
     hour12: true,
   });
   return `${date}, ${time}`;
+}
+
+/** "20:00" → "8:00 PM". Hour is 0–23, minute 0–59. */
+export function formatTime(hour: number, minute: number): string {
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  const suffix = hour < 12 ? 'AM' : 'PM';
+  return `${h12}:${String(minute).padStart(2, '0')} ${suffix}`;
 }
 
 export function timeAgo(isoString: string): string {

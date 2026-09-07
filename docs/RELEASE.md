@@ -33,8 +33,9 @@ screenshots, policy) can be finished while the clock runs.
 **A website is not mandatory.** No domain, no company site.
 
 **A publicly reachable privacy-policy URL IS mandatory** — Play requires one for
-any app requesting sensitive permissions, and yours requests Camera and Photos.
-It must be a live public page (not a Google Doc behind sign-in, not a PDF).
+any app requesting sensitive permissions, and yours requests Camera, Photos and
+Notifications. It must be a live public page (not a Google Doc behind sign-in,
+not a PDF).
 
 ### The policy is written and filled in
 
@@ -72,7 +73,7 @@ actually publish.
 
 ```bash
 npm run type-check     # must pass
-npm test               # must pass (41 tests)
+npm test               # must pass (49 tests)
 npx expo-doctor        # must be 18/18
 ```
 
@@ -171,9 +172,11 @@ That's the correct answer for the current build. Specifically, declare **not
 collected**: Location, Personal info, Financial info, Photos and videos, Files
 and docs, Contacts, Device IDs, App activity.
 
-> **Why "not collected" despite the Camera/Photos permissions?** Play's
-> definition is about *transmission*. Requesting a permission is not collection;
-> the photos stay in the app's private storage on the device.
+> **Why "not collected" despite the Camera/Photos/Notifications permissions?**
+> Play's definition is about *transmission*. Requesting a permission is not
+> collection; the photos stay in the app's private storage on the device, and
+> the daily reminder is a **local** notification scheduled on-device — no push
+> token, no server, nothing sent. The Data Safety answer stays "No".
 
 Your answers must match your privacy policy — they're cross-checked. Both now
 say the same thing: nothing is collected.
@@ -213,7 +216,8 @@ with entries, the note/photo entry, and the export dialog.
 > • Export all files at once as a ZIP
 > • Swipe to delete, with undo
 > • Recently Deleted keeps files for 30 days
-> • 150+ currencies
+> • Optional daily reminder to log your expenses
+> • 30 currencies
 > • Works completely offline
 
 ---
@@ -281,6 +285,18 @@ on a device. Walk these on at least two different phones:
       and confirm the app explains rather than crashes
 - [ ] **Permanently deny** camera in system settings → confirm the "Open
       Settings" path appears
+- [ ] **Reminder**: Settings → toggle Daily reminder on → grant the notification
+      permission → set a time a minute or two ahead → lock the phone → the
+      notification fires. Toggle off → it stops. Deny the permission → the app
+      shows the "Open Settings" prompt, doesn't crash
+- [ ] **Reminder survives reboot**: enable it, restart the phone, confirm it
+      still fires (the app reschedules on launch)
+- [ ] **Serial numbers**: add several entries — S.No reads 1,2,3… top to bottom,
+      newest at the bottom above the input row
+- [ ] **Duplicate**: add an entry with a description that already exists →
+      confirm the "Already Added" prompt appears
+- [ ] **Rounding**: enter `100.005` → it shows `100.01`; export PDF and CSV →
+      both show `100.01`, and the CSV total matches
 - [ ] **Export**: PDF and CSV from a file; verify notes appear in both
 - [ ] **Export all as ZIP** from Settings with several files
 - [ ] **Delete + undo** an entry; delete a file and restore from Recently Deleted
@@ -336,3 +352,9 @@ Organisation accounts can skip the middle two rows.
 - **`RECORD_AUDIO` is explicitly blocked** in `app.json` — `expo-image-picker`
   adds it by default. Don't remove `"microphonePermission": false`, or your
   listing will start asking users for microphone access.
+- **`POST_NOTIFICATIONS` is added by `expo-notifications`** (Android 13+) for the
+  optional daily reminder. This is a normal, low-sensitivity permission and does
+  not change the Data Safety answers (the reminder is local — see Step 5). The
+  permission is only requested when the user turns the reminder on.
+- **Notifications can't be tested in Expo Go** on SDK 54 — use a `preview` or
+  `production` EAS build.

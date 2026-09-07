@@ -1,13 +1,16 @@
 import { useStore } from './useStore';
 import * as storage from '../services/storage';
 import * as attachments from '../services/attachments';
+import * as notifications from '../services/notifications';
 import { ExpenseFile } from '../types';
 
 jest.mock('../services/storage');
 jest.mock('../services/attachments');
+jest.mock('../services/notifications');
 
 const mockedStorage = storage as jest.Mocked<typeof storage>;
 const mockedAttachments = attachments as jest.Mocked<typeof attachments>;
+const mockedNotifications = notifications as jest.Mocked<typeof notifications>;
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -17,6 +20,7 @@ function resetStore() {
     deletedFiles: [],
     isLoading: true,
     showCurrencyPickerOnLaunch: false,
+    reminder: { enabled: false, hour: 20, minute: 0 },
   });
 }
 
@@ -42,6 +46,10 @@ beforeEach(() => {
   });
   mockedStorage.isFirstLaunch.mockResolvedValue(false);
   mockedStorage.hasSeeded.mockResolvedValue(true);
+  mockedStorage.loadReminderPrefs.mockResolvedValue({ enabled: false, hour: 20, minute: 0 });
+  mockedNotifications.requestNotificationPermission.mockResolvedValue(true);
+  mockedNotifications.scheduleDailyReminder.mockResolvedValue(undefined);
+  mockedNotifications.cancelDailyReminder.mockResolvedValue(undefined);
 });
 
 describe('loadData — default file seeding', () => {
@@ -202,5 +210,55 @@ describe('expenses', () => {
 
     const left = useStore.getState().getFile('f1')!.expenses.map(e => e.particular);
     expect(left).toEqual(['B']);
+  });
+});
+
+describe('daily reminder', () => {
+  it('schedules and persists when enabled with permission granted', async () => {
+    const ok = await useStore.getState().setReminderEnabled(true);
+
+    expect(ok).toBe(true);
+    expect(useStore.getState().reminder.enabled).toBe(true);
+    expect(mockedNotifications.scheduleDailyReminder).toHaveBeenCalledWith(20, 0);
+    expect(mockedStorage.saveReminderPrefs).toHaveBeenCalledWith(
+      expect.objectContaining({ enabled: true })
+    );
+  });
+
+  it('stays off and does not schedule when permission is denied', async () => {
+    mockedNotifications.requestNotificationPermission.mockResolvedValue(false);
+
+    const ok = await useStore.getState().setReminderEnabled(true);
+
+    expect(ok).toBe(false);
+    expect(useStore.getState().reminder.enabled).toBe(false);
+    expect(mockedNotifications.scheduleDailyReminder).not.toHaveBeenCalled();
+  });
+
+  it('cancels the scheduled reminder when turned off', async () => {
+    await useStore.getState().setReminderEnabled(true);
+    await useStore.getState().setReminderEnabled(false);
+
+    expect(mockedNotifications.cancelDailyReminder).toHaveBeenCalled();
+    expect(useStore.getState().reminder.enabled).toBe(false);
+  });
+
+  it('reschedules at the new time only while enabled', async () => {
+    await useStore.getState().setReminderTime(7, 30);
+    expect(mockedNotifications.scheduleDailyReminder).not.toHaveBeenCalled();
+    expect(useStore.getState().reminder).toMatchObject({ hour: 7, minute: 30 });
+
+    await useStore.getState().setReminderEnabled(true);
+    await useStore.getState().setReminderTime(9, 0);
+    expect(mockedNotifications.scheduleDailyReminder).toHaveBeenLastCalledWith(9, 0);
+  });
+
+  it('re-asserts the schedule on load when previously enabled', async () => {
+    mockedStorage.loadReminderPrefs.mockResolvedValue({ enabled: true, hour: 8, minute: 30 });
+
+    await useStore.getState().loadData();
+
+    expect(useStore.getState().reminder).toEqual({ enabled: true, hour: 8, minute: 30 });
+    expect(mockedNotifications.scheduleDailyReminder).toHaveBeenCalledWith(8, 30);
   });
 });

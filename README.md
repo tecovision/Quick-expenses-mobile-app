@@ -9,7 +9,8 @@ A mobile expense tracker built with React Native and Expo SDK 54.
 - Create expense files and track particulars with amounts
 - Search, edit, and delete entries with undo support
 - Export to PDF or CSV (Excel)
-- Multi-currency support with 30+ currencies
+- Multi-currency support (30 currencies)
+- Optional local daily reminder to log expenses
 - Recently Deleted with 30-day recovery window
 - All data stored locally on device
 
@@ -102,6 +103,7 @@ Quick-expenses-mobile-app/
 │   │
 │   ├── services/
 │   │   ├── storage.ts          # AsyncStorage read/write
+│   │   ├── notifications.ts    # Local daily-reminder scheduling
 │   │   └── export.ts           # PDF and CSV generation
 │   │
 │   ├── store/

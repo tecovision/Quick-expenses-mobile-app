@@ -9,6 +9,7 @@ const KEYS = {
   currency:     '@quickexpenses/currency',
   firstLaunch:  '@quickexpenses/first_launch',
   seeded:       '@quickexpenses/seeded',
+  reminder:     '@quickexpenses/reminder',
 } as const;
 
 // ── Files ────────────────────────────────────────────────────────
@@ -106,6 +107,36 @@ export async function markSeeded(): Promise<void> {
   try {
     await AsyncStorage.setItem(KEYS.seeded, '1');
   } catch { /* non-critical */ }
+}
+
+// ── Daily reminder preferences ───────────────────────────────────
+export interface ReminderPrefs {
+  enabled: boolean;
+  hour: number;    // 0–23, local time
+  minute: number;  // 0–59
+}
+
+export const DEFAULT_REMINDER: ReminderPrefs = { enabled: false, hour: 20, minute: 0 };
+
+export async function loadReminderPrefs(): Promise<ReminderPrefs> {
+  try {
+    const data = await AsyncStorage.getItem(KEYS.reminder);
+    if (!data) return DEFAULT_REMINDER;
+    const p = JSON.parse(data) ?? {};
+    const hour   = Number.isInteger(p.hour)   && p.hour   >= 0 && p.hour   <= 23 ? p.hour   : DEFAULT_REMINDER.hour;
+    const minute = Number.isInteger(p.minute) && p.minute >= 0 && p.minute <= 59 ? p.minute : DEFAULT_REMINDER.minute;
+    return { enabled: !!p.enabled, hour, minute };
+  } catch {
+    return DEFAULT_REMINDER;
+  }
+}
+
+export async function saveReminderPrefs(prefs: ReminderPrefs): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.reminder, JSON.stringify(prefs));
+  } catch (e) {
+    captureError(e, { op: 'saveReminderPrefs' });
+  }
 }
 
 // ── Nuclear option ───────────────────────────────────────────────

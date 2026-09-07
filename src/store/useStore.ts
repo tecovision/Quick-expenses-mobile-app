@@ -6,8 +6,14 @@ import {
   loadCurrency, saveCurrency,
   isFirstLaunch, markLaunched,
   hasSeeded, markSeeded,
+  loadReminderPrefs, saveReminderPrefs, DEFAULT_REMINDER, ReminderPrefs,
 } from '../services/storage';
 import { deleteAttachment } from '../services/attachments';
+import {
+  requestNotificationPermission,
+  scheduleDailyReminder,
+  cancelDailyReminder,
+} from '../services/notifications';
 import { DEFAULT_CURRENCY } from '../constants/currencies';
 import { uid } from '../utils/helpers';
 
@@ -26,9 +32,16 @@ interface StoreState {
   currency: Currency;
   isLoading: boolean;
   showCurrencyPickerOnLaunch: boolean;
+  reminder: ReminderPrefs;
 
   loadData: () => Promise<void>;
   getFile: (id: string) => ExpenseFile | undefined;
+
+  // ── Daily reminder ─────────────────────────────────────────────
+  /** Turn the reminder on/off. Returns false if permission was denied. */
+  setReminderEnabled: (enabled: boolean) => Promise<boolean>;
+  /** Change the reminder time (and reschedule if it is currently on). */
+  setReminderTime: (hour: number, minute: number) => Promise<void>;
 
   // ── Files ──────────────────────────────────────────────────────
   addFile: (name: string) => void;
@@ -66,15 +79,24 @@ export const useStore = create<StoreState>((set, get) => ({
   currency: DEFAULT_CURRENCY,
   isLoading: true,
   showCurrencyPickerOnLaunch: false,
+  reminder: DEFAULT_REMINDER,
 
   loadData: async () => {
-    const [files, allDeletedFiles, currency, firstLaunch, seeded] = await Promise.all([
+    const [files, allDeletedFiles, currency, firstLaunch, seeded, reminder] = await Promise.all([
       loadFiles(),
       loadDeletedFiles(),
       loadCurrency(),
       isFirstLaunch(),
       hasSeeded(),
+      loadReminderPrefs(),
     ]);
+
+    // Re-assert the scheduled reminder on every launch — cheap, and it
+    // recovers from an OS that dropped scheduled notifications after a
+    // reboot or app update.
+    if (reminder.enabled) {
+      void scheduleDailyReminder(reminder.hour, reminder.minute);
+    }
 
     // 30-day retention: prune expired entries from Recently Deleted and
     // remove their photo attachments from disk so nothing leaks.
@@ -113,6 +135,7 @@ export const useStore = create<StoreState>((set, get) => ({
       currency,
       isLoading: false,
       showCurrencyPickerOnLaunch: firstLaunch,
+      reminder,
     });
   },
 
@@ -249,5 +272,27 @@ export const useStore = create<StoreState>((set, get) => ({
 
   markCurrencyPickerShown: () => {
     set({ showCurrencyPickerOnLaunch: false });
+  },
+
+  setReminderEnabled: async (enabled) => {
+    if (enabled) {
+      const granted = await requestNotificationPermission();
+      if (!granted) return false;
+      const { hour, minute } = get().reminder;
+      await scheduleDailyReminder(hour, minute);
+    } else {
+      await cancelDailyReminder();
+    }
+    const reminder = { ...get().reminder, enabled };
+    set({ reminder });
+    saveReminderPrefs(reminder);
+    return true;
+  },
+
+  setReminderTime: async (hour, minute) => {
+    const reminder = { ...get().reminder, hour, minute };
+    set({ reminder });
+    saveReminderPrefs(reminder);
+    if (reminder.enabled) await scheduleDailyReminder(hour, minute);
   },
 }));
