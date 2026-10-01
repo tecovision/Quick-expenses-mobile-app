@@ -2,17 +2,22 @@ import { useStore } from './useStore';
 import * as storage from '../services/storage';
 import * as attachments from '../services/attachments';
 import * as notifications from '../services/notifications';
+import * as biometric from '../services/biometric';
 import { ExpenseFile } from '../types';
 
 jest.mock('../services/storage');
 jest.mock('../services/attachments');
 jest.mock('../services/notifications');
+jest.mock('../services/biometric');
 
 const mockedStorage = storage as jest.Mocked<typeof storage>;
 const mockedAttachments = attachments as jest.Mocked<typeof attachments>;
 const mockedNotifications = notifications as jest.Mocked<typeof notifications>;
+const mockedBiometric = biometric as jest.Mocked<typeof biometric>;
 
 const DAY = 24 * 60 * 60 * 1000;
+
+const DEFAULT_CONVERTER = { primary: 'USD', secondary: 'INR', rate: 83 };
 
 function resetStore() {
   useStore.setState({
@@ -22,6 +27,13 @@ function resetStore() {
     showCurrencyPickerOnLaunch: false,
     showFirstRunNotice: false,
     reminder: { enabled: false, hour: 20, minute: 0 },
+    todos: [],
+    notes: [],
+    converter: DEFAULT_CONVERTER,
+    biometricSupported: false,
+    biometricEnabled: false,
+    showBiometricPrompt: false,
+    isAppLocked: false,
   });
 }
 
@@ -52,6 +64,13 @@ beforeEach(() => {
   mockedNotifications.requestNotificationPermission.mockResolvedValue(true);
   mockedNotifications.scheduleDailyReminder.mockResolvedValue(undefined);
   mockedNotifications.cancelDailyReminder.mockResolvedValue(undefined);
+  mockedStorage.loadTodos.mockResolvedValue([]);
+  mockedStorage.loadNotes.mockResolvedValue([]);
+  mockedStorage.loadConverterPrefs.mockResolvedValue(DEFAULT_CONVERTER);
+  mockedStorage.loadBiometricEnabled.mockResolvedValue(false);
+  mockedStorage.hasSeenBiometricPrompt.mockResolvedValue(true);
+  mockedBiometric.isBiometricAvailable.mockResolvedValue(false);
+  mockedBiometric.authenticate.mockResolvedValue(true);
 });
 
 describe('loadData — default file seeding', () => {
@@ -280,5 +299,192 @@ describe('daily reminder', () => {
 
     expect(useStore.getState().reminder).toEqual({ enabled: true, hour: 8, minute: 30 });
     expect(mockedNotifications.scheduleDailyReminder).toHaveBeenCalledWith(8, 30);
+  });
+});
+
+describe('to-do list', () => {
+  it('adds a task to the front of the list', () => {
+    useStore.getState().addTodo('Buy milk');
+    useStore.getState().addTodo('Pay rent');
+
+    const texts = useStore.getState().todos.map(t => t.text);
+    expect(texts).toEqual(['Pay rent', 'Buy milk']);
+    expect(mockedStorage.saveTodos).toHaveBeenCalled();
+  });
+
+  it('ignores a blank task', () => {
+    useStore.getState().addTodo('   ');
+    expect(useStore.getState().todos).toHaveLength(0);
+  });
+
+  it('toggles done without touching other tasks', () => {
+    useStore.getState().addTodo('A');
+    useStore.getState().addTodo('B');
+    const [second] = useStore.getState().todos; // 'B', added last -> at the front
+
+    useStore.getState().toggleTodo(second.id);
+
+    const todos = useStore.getState().todos;
+    expect(todos.find(t => t.id === second.id)?.done).toBe(true);
+    expect(todos.find(t => t.id !== second.id)?.done).toBe(false);
+  });
+
+  it('deletes a task', () => {
+    useStore.getState().addTodo('A');
+    const [item] = useStore.getState().todos;
+
+    useStore.getState().deleteTodo(item.id);
+
+    expect(useStore.getState().todos).toHaveLength(0);
+  });
+
+  it('clears only completed tasks', () => {
+    useStore.getState().addTodo('Keep');
+    useStore.getState().addTodo('Done');
+    const [done] = useStore.getState().todos;
+    useStore.getState().toggleTodo(done.id);
+
+    useStore.getState().clearCompletedTodos();
+
+    const texts = useStore.getState().todos.map(t => t.text);
+    expect(texts).toEqual(['Keep']);
+  });
+});
+
+describe('notepad', () => {
+  it('adds a note to the front of the list', () => {
+    useStore.getState().addNote('Groceries', 'Milk, eggs');
+    useStore.getState().addNote('Ideas', 'Ship it');
+
+    const titles = useStore.getState().notes.map(n => n.title);
+    expect(titles).toEqual(['Ideas', 'Groceries']);
+    expect(mockedStorage.saveNotes).toHaveBeenCalled();
+  });
+
+  it('ignores a completely empty note', () => {
+    useStore.getState().addNote('  ', '  ');
+    expect(useStore.getState().notes).toHaveLength(0);
+  });
+
+  it('updates an existing note', () => {
+    useStore.getState().addNote('Old title', 'Old body');
+    const [note] = useStore.getState().notes;
+
+    useStore.getState().updateNote(note.id, 'New title', 'New body');
+
+    const updated = useStore.getState().notes[0];
+    expect(updated.title).toBe('New title');
+    expect(updated.body).toBe('New body');
+    expect(updated.createdAt).toBe(note.createdAt); // unchanged
+  });
+
+  it('deletes a note', () => {
+    useStore.getState().addNote('A', 'B');
+    const [note] = useStore.getState().notes;
+
+    useStore.getState().deleteNote(note.id);
+
+    expect(useStore.getState().notes).toHaveLength(0);
+  });
+});
+
+describe('currency converter', () => {
+  it('merges partial preference updates and persists them', () => {
+    useStore.getState().setConverterPrefs({ rate: 90 });
+
+    expect(useStore.getState().converter).toEqual({ primary: 'USD', secondary: 'INR', rate: 90 });
+    expect(mockedStorage.saveConverterPrefs).toHaveBeenCalledWith(
+      expect.objectContaining({ rate: 90 })
+    );
+  });
+
+  it('swaps currencies and inverts the rate', () => {
+    useStore.setState({ converter: { primary: 'USD', secondary: 'INR', rate: 80 } });
+
+    useStore.getState().swapConverterCurrencies();
+
+    const { primary, secondary, rate } = useStore.getState().converter;
+    expect(primary).toBe('INR');
+    expect(secondary).toBe('USD');
+    expect(rate).toBeCloseTo(1 / 80, 6);
+  });
+});
+
+describe('app lock (Face ID / fingerprint)', () => {
+  it('requires a live auth check before turning on, and persists on success', async () => {
+    const ok = await useStore.getState().setBiometricEnabled(true);
+
+    expect(ok).toBe(true);
+    expect(mockedBiometric.authenticate).toHaveBeenCalled();
+    expect(useStore.getState().biometricEnabled).toBe(true);
+    expect(mockedStorage.saveBiometricEnabled).toHaveBeenCalledWith(true);
+  });
+
+  it('stays off when the auth check fails or is cancelled', async () => {
+    mockedBiometric.authenticate.mockResolvedValue(false);
+
+    const ok = await useStore.getState().setBiometricEnabled(true);
+
+    expect(ok).toBe(false);
+    expect(useStore.getState().biometricEnabled).toBe(false);
+    expect(mockedStorage.saveBiometricEnabled).not.toHaveBeenCalled();
+  });
+
+  it('turns off without requiring auth (already inside the unlocked app)', async () => {
+    useStore.setState({ biometricEnabled: true });
+    mockedBiometric.authenticate.mockClear();
+
+    const ok = await useStore.getState().setBiometricEnabled(false);
+
+    expect(ok).toBe(true);
+    expect(mockedBiometric.authenticate).not.toHaveBeenCalled();
+    expect(useStore.getState().biometricEnabled).toBe(false);
+  });
+
+  it('unlockApp clears isAppLocked only on a successful auth', async () => {
+    useStore.setState({ isAppLocked: true });
+    mockedBiometric.authenticate.mockResolvedValueOnce(false);
+    expect(await useStore.getState().unlockApp()).toBe(false);
+    expect(useStore.getState().isAppLocked).toBe(true);
+
+    mockedBiometric.authenticate.mockResolvedValueOnce(true);
+    expect(await useStore.getState().unlockApp()).toBe(true);
+    expect(useStore.getState().isAppLocked).toBe(false);
+  });
+
+  it('lockApp only re-locks when the lock feature is actually on', () => {
+    useStore.setState({ biometricEnabled: false, isAppLocked: false });
+    useStore.getState().lockApp();
+    expect(useStore.getState().isAppLocked).toBe(false);
+
+    useStore.setState({ biometricEnabled: true, isAppLocked: false });
+    useStore.getState().lockApp();
+    expect(useStore.getState().isAppLocked).toBe(true);
+  });
+
+  it('loadData starts the app locked whenever the lock was left on', async () => {
+    mockedStorage.loadBiometricEnabled.mockResolvedValue(true);
+
+    await useStore.getState().loadData();
+
+    expect(useStore.getState().isAppLocked).toBe(true);
+  });
+
+  it('offers the one-time biometric prompt only when supported, off, and unseen', async () => {
+    mockedBiometric.isBiometricAvailable.mockResolvedValue(true);
+    mockedStorage.hasSeenBiometricPrompt.mockResolvedValue(false);
+
+    await useStore.getState().loadData();
+
+    expect(useStore.getState().showBiometricPrompt).toBe(true);
+  });
+
+  it('dismissing the prompt persists so it never reappears', async () => {
+    useStore.setState({ showBiometricPrompt: true });
+
+    useStore.getState().dismissBiometricPrompt();
+
+    expect(useStore.getState().showBiometricPrompt).toBe(false);
+    expect(mockedStorage.markBiometricPromptSeen).toHaveBeenCalled();
   });
 });

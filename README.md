@@ -12,6 +12,8 @@ A mobile expense tracker built with React Native and Expo SDK 54.
 - Multi-currency support (30 currencies)
 - Optional local daily reminder to log expenses
 - Recently Deleted with 30-day recovery window
+- Tools: Currency Converter, Calculator, To-Do List, Notepad
+- Optional Face ID / fingerprint app lock
 - All data stored locally on device
 
 ---
@@ -79,11 +81,17 @@ This opens the Metro Bundler in your terminal and shows a QR code.
 ```
 Quick-expenses-mobile-app/
 ├── app/                        # Screens (Expo Router file-based navigation)
-│   ├── _layout.tsx             # Root layout — splash screen, data loading
+│   ├── _layout.tsx             # Root layout — splash screen, data loading, app lock gate
 │   ├── index.tsx               # Home screen — file list
 │   ├── file/[id].tsx           # Expense file screen
-│   ├── settings.tsx            # Settings — currency picker
+│   ├── settings.tsx            # Settings — currency, reminders, security
 │   ├── recently-deleted.tsx    # Recently deleted files
+│   ├── tools/
+│   │   ├── index.tsx           # Tools hub
+│   │   ├── converter.tsx       # Currency Converter
+│   │   ├── calculator.tsx      # Calculator
+│   │   ├── todo.tsx            # To-Do List
+│   │   └── notes.tsx           # Notepad
 │   └── +not-found.tsx          # 404 handler
 │
 ├── src/
@@ -91,16 +99,19 @@ Quick-expenses-mobile-app/
 │   │   ├── FileCard.tsx        # File list card
 │   │   ├── EmptyState.tsx      # Empty list placeholder
 │   │   ├── ExpenseForm.tsx     # Add / edit expense modal
-│   │   ├── CurrencyPicker.tsx  # Currency selection modal
+│   │   ├── CurrencyPicker.tsx  # Currency selection modal (reused by the converter)
 │   │   ├── TimePicker.tsx      # Reminder-time selection modal
 │   │   ├── FirstRunNotice.tsx  # One-time privacy / terms notice
+│   │   ├── BiometricPrompt.tsx # One-time "enable app lock?" offer
+│   │   ├── LockScreen.tsx      # Full-screen gate while the app is locked
 │   │   ├── PhotoViewer.tsx     # Fullscreen pinch-zoom photo viewer
 │   │   └── UndoToast.tsx       # Undo delete toast
 │   │
 │   ├── constants/
 │   │   ├── theme.ts            # Colors, typography, spacing
 │   │   ├── legal.ts            # Privacy policy / terms URLs
-│   │   └── currencies.ts       # 30 supported currencies
+│   │   ├── currencies.ts       # 30 supported currencies
+│   │   └── approxRates.ts      # Static starting rates for the converter
 │   │
 │   ├── hooks/
 │   │   └── useCurrency.ts      # Currency formatting hook
@@ -108,6 +119,7 @@ Quick-expenses-mobile-app/
 │   ├── services/
 │   │   ├── storage.ts          # AsyncStorage read/write
 │   │   ├── notifications.ts    # Local daily-reminder scheduling
+│   │   ├── biometric.ts        # Face ID / fingerprint wrapper (expo-local-authentication)
 │   │   ├── attachments.ts      # Photo attachment persistence
 │   │   └── export.ts           # PDF / CSV generation, download & share
 │   │
@@ -118,7 +130,8 @@ Quick-expenses-mobile-app/
 │   │   └── index.ts            # TypeScript interfaces
 │   │
 │   └── utils/
-│       └── helpers.ts          # Utility functions
+│       ├── helpers.ts          # Utility functions
+│       └── calculator.ts       # Pure calculator engine (no eval)
 │
 ├── assets/                     # App icons and splash screen
 ├── app.json                    # Expo configuration

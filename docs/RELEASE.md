@@ -34,8 +34,9 @@ screenshots, policy) can be finished while the clock runs.
 
 **A publicly reachable privacy-policy URL IS mandatory** — Play requires one for
 any app requesting sensitive permissions, and yours requests Camera, Photos and
-Notifications. It must be a live public page (not a Google Doc behind sign-in,
-not a PDF).
+Notifications. (Biometric app lock uses `USE_BIOMETRIC`, a normal/non-sensitive
+Android permission — it doesn't change this requirement, it was already true.)
+It must be a live public page (not a Google Doc behind sign-in, not a PDF).
 
 ### The policy is written and filled in
 
@@ -87,7 +88,7 @@ actually publish.
 
 ```bash
 npm run type-check     # must pass
-npm test               # must pass (55 tests)
+npm test               # must pass (93 tests)
 npx expo-doctor        # must be 18/18
 ```
 
@@ -192,8 +193,11 @@ and docs, Contacts, Device IDs, App activity.
 > the daily reminder is a **local** notification scheduled on-device — no push
 > token, no server, nothing sent. The **Download** feature writes files into a
 > folder the user picks (Android Storage Access Framework) — that is the user
-> saving their own data locally, still no transmission. The Data Safety answer
-> stays "No".
+> saving their own data locally, still no transmission. **App Lock** (Face ID /
+> fingerprint) is verified entirely by the OS — the app only gets a yes/no
+> result and never touches biometric data. The **Currency Converter** never
+> calls a rates API — the rate is a static default the user edits by hand. The
+> Data Safety answer stays "No".
 
 Your answers must match your privacy policy — they're cross-checked. Both now
 say the same thing: nothing is collected.
@@ -216,7 +220,7 @@ section and the privacy policy** — the answer changes to Yes / Crash logs.
 | Full description | ≤4000 chars | Draft below |
 
 Take screenshots on your phone (Power + Volume Down) of: the file list, a file
-with entries, the note/photo entry, and the export dialog.
+with entries, the note/photo entry, the export dialog, and the Tools hub.
 
 **Short description:**
 > Fast, private expense tracking. No account, no cloud — your data stays on your phone.
@@ -234,6 +238,8 @@ with entries, the note/photo entry, and the export dialog.
 > • Swipe to delete, with undo
 > • Recently Deleted keeps files for 30 days
 > • Optional daily reminder to log your expenses
+> • Built-in tools: currency converter, calculator, to-do list, notepad
+> • Optional Face ID / fingerprint app lock
 > • 30 currencies
 > • Works completely offline
 
@@ -334,6 +340,36 @@ on a device. Walk these on at least two different phones:
 - [ ] **Airplane mode** — everything must still work (app is offline-first)
 - [ ] **Kill and relaunch** — data persists
 - [ ] **Fresh install** — the two default files appear
+- [ ] **Tools hub**: Home → grid icon → all four tiles open their screen
+- [ ] **Currency Converter**: amount typed into either side updates the other;
+      editing the rate recomputes the non-edited side; swap flips currencies and
+      inverts the rate; changing a currency resets the rate to a fresh default
+- [ ] **Calculator**: a chained calculation (e.g. `2 + 3 × 4`), a divide-by-zero
+      (shows `Error`, recovers on the next digit), and `C` resets to `0`
+- [ ] **To-Do List**: add, check off, delete a task; **Clear done** removes only
+      checked tasks
+- [ ] **Notepad**: add a note with just a body (no title) → shows "Untitled" in
+      the list; edit and re-open → changes saved; delete a note
+- [ ] **App Lock — enable**: on a device with Face ID / fingerprint enrolled,
+      Settings → App Lock → toggle on → the OS prompt appears → confirm → stays
+      on. On a device with none enrolled, the Security section doesn't appear
+      at all
+- [ ] **App Lock — relock**: with it on, background the app (Home button),
+      wait at least 20 seconds, reopen → the lock screen appears → **Unlock**
+      triggers the OS prompt → success reveals the app, cancel stays locked
+- [ ] **App Lock — short trips don't relock**: with it on, attach a photo
+      (camera or gallery), use Download, or tap "Open Settings" from the
+      reminder permission prompt → each briefly backgrounds the app → on
+      return you should **not** be asked to unlock (20-second grace window —
+      see `app/_layout.tsx`)
+- [ ] **App Lock — cold start**: with it on, kill and relaunch the app → it
+      opens locked
+- [ ] **App Lock — first-run offer**: fresh install on a biometric-capable
+      device → after the privacy notice, the "Lock the app with…" prompt
+      appears once; **Not now** dismisses it for good; it never reappears
+- [ ] **App Lock — disable**: Settings → App Lock → toggle off → no prompt
+      needed (you're already inside the unlocked app) → background/reopen →
+      no lock screen
 
 ---
 
@@ -407,3 +443,15 @@ Already applied to keep it down:
   permission is only requested when the user turns the reminder on.
 - **Notifications can't be tested in Expo Go** on SDK 54 — use a `preview` or
   `production` EAS build.
+- **App Lock can't be fully tested in Expo Go either** — `expo-local-authentication`
+  needs a real build. Use `preview`/`production`.
+- **Calculator evaluates left-to-right, not by operator precedence** — `2 + 3 × 4`
+  gives `20` (computes `2+3` first, then `×4`), matching how a simple pocket
+  calculator works, not a scientific one. This is intentional, not a bug — see
+  `src/utils/calculator.ts`.
+- **Currency Converter rates are a static, hand-edited default**, not live —
+  the app stays fully offline on purpose. See `src/constants/approxRates.ts`.
+  If live rates are ever wanted, that's a deliberate, separate decision (it
+  would add a network call and change the Data Safety answers).
+- **To-Do and Notepad have no undo** on delete, unlike expense entries/files.
+  Low risk — Clear Done and the trash icon both ask for confirmation first.

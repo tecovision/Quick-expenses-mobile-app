@@ -27,10 +27,15 @@ export default function SettingsScreen() {
   const setReminderEnabled = useStore(s => s.setReminderEnabled);
   const setReminderTime    = useStore(s => s.setReminderTime);
 
+  const biometricSupported = useStore(s => s.biometricSupported);
+  const biometricEnabled   = useStore(s => s.biometricEnabled);
+  const setBiometricEnabled = useStore(s => s.setBiometricEnabled);
+
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [bulkExporting, setBulkExporting] = useState(false);
   const [togglingReminder, setTogglingReminder] = useState(false);
+  const [togglingBiometric, setTogglingBiometric] = useState(false);
 
   const handleReminderToggle = async (next: boolean) => {
     if (togglingReminder) return;
@@ -55,6 +60,22 @@ export default function SettingsScreen() {
   const handleTimeSelect = (hour: number, minute: number) => {
     setShowTimePicker(false);
     setReminderTime(hour, minute);
+  };
+
+  const handleBiometricToggle = async (next: boolean) => {
+    if (togglingBiometric) return;
+    setTogglingBiometric(true);
+    try {
+      const ok = await setBiometricEnabled(next);
+      if (next && !ok) {
+        Alert.alert(
+          'Could Not Enable',
+          "Verification failed or was cancelled. Make sure Face ID or a fingerprint is set up in your phone's system settings, then try again."
+        );
+      }
+    } finally {
+      setTogglingBiometric(false);
+    }
   };
 
   const runBulkExport = async (format: 'pdf' | 'csv') => {
@@ -172,6 +193,35 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Security */}
+        {biometricSupported && (
+          <>
+            <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>SECURITY</Text>
+            <View style={styles.card}>
+              <View style={[styles.row, { borderBottomWidth: 0 }]}>
+                <View style={styles.rowLeft}>
+                  <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
+                    <Ionicons name="finger-print-outline" size={18} color={colors.accent} />
+                  </View>
+                  <View style={styles.rowTextWrap}>
+                    <Text style={styles.rowTitle}>App Lock</Text>
+                    <Text style={styles.rowSub}>Require Face ID / fingerprint to open the app</Text>
+                  </View>
+                </View>
+                {togglingBiometric ? (
+                  <ActivityIndicator size="small" color={colors.accent} />
+                ) : (
+                  <Switch
+                    value={biometricEnabled}
+                    onValueChange={handleBiometricToggle}
+                    trackColor={{ true: colors.accent, false: colors.borderLight }}
+                  />
+                )}
+              </View>
+            </View>
+          </>
+        )}
 
         {/* Backup */}
         <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>BACKUP</Text>

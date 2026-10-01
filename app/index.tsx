@@ -132,6 +132,15 @@ export default function HomeScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => router.push('/tools')}
+            style={styles.iconBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Tools"
+          >
+            <Ionicons name="grid-outline" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => router.push('/settings')}
             style={styles.iconBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

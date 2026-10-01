@@ -25,3 +25,18 @@ export interface Currency {
   name: string;
   locale: string;
 }
+
+export interface TodoItem {
+  id: string;
+  text: string;
+  done: boolean;
+  createdAt: string;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}

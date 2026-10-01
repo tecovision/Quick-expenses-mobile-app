@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Currency, DeletedExpenseFile, ExpenseFile } from '../types';
+import { Currency, DeletedExpenseFile, ExpenseFile, Note, TodoItem } from '../types';
 import { DEFAULT_CURRENCY } from '../constants/currencies';
+import { approxRate } from '../constants/approxRates';
 import { captureError } from './monitoring';
 
 const KEYS = {
@@ -12,6 +13,11 @@ const KEYS = {
   reminder:     '@quickexpenses/reminder',
   downloadDir:  '@quickexpenses/download_dir',
   noticeAck:    '@quickexpenses/notice_ack',
+  todos:        '@quickexpenses/todos',
+  notes:        '@quickexpenses/notes',
+  converter:    '@quickexpenses/converter',
+  biometric:    '@quickexpenses/biometric_enabled',
+  bioPromptAck: '@quickexpenses/biometric_prompt_ack',
 } as const;
 
 // ── Files ────────────────────────────────────────────────────────
@@ -180,6 +186,123 @@ export async function saveDownloadDir(uri: string): Promise<void> {
 export async function clearDownloadDir(): Promise<void> {
   try {
     await AsyncStorage.removeItem(KEYS.downloadDir);
+  } catch { /* non-critical */ }
+}
+
+// ── To-Do list ────────────────────────────────────────────────────
+export async function loadTodos(): Promise<TodoItem[]> {
+  try {
+    const data = await AsyncStorage.getItem(KEYS.todos);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    captureError(e, { op: 'loadTodos' });
+    return [];
+  }
+}
+
+export async function saveTodos(todos: TodoItem[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.todos, JSON.stringify(todos));
+  } catch (e) {
+    captureError(e, { op: 'saveTodos', count: todos.length });
+  }
+}
+
+// ── Notepad ──────────────────────────────────────────────────────
+export async function loadNotes(): Promise<Note[]> {
+  try {
+    const data = await AsyncStorage.getItem(KEYS.notes);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    captureError(e, { op: 'loadNotes' });
+    return [];
+  }
+}
+
+export async function saveNotes(notes: Note[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.notes, JSON.stringify(notes));
+  } catch (e) {
+    captureError(e, { op: 'saveNotes', count: notes.length });
+  }
+}
+
+// ── Currency converter ──────────────────────────────────────────
+// A manual rate the user sets and edits — the app is offline and never
+// fetches live rates. Seeded from a rough static table the first time a
+// pair is picked (see constants/approxRates.ts).
+export interface ConverterPrefs {
+  primary: string;   // currency code
+  secondary: string; // currency code
+  rate: number;       // 1 `primary` = `rate` `secondary`
+}
+
+export function defaultConverterPrefs(): ConverterPrefs {
+  return { primary: 'USD', secondary: 'INR', rate: approxRate('USD', 'INR') };
+}
+
+export async function loadConverterPrefs(): Promise<ConverterPrefs> {
+  try {
+    const data = await AsyncStorage.getItem(KEYS.converter);
+    if (!data) return defaultConverterPrefs();
+    const p = JSON.parse(data) ?? {};
+    const fallback = defaultConverterPrefs();
+    return {
+      primary:   typeof p.primary === 'string' ? p.primary : fallback.primary,
+      secondary: typeof p.secondary === 'string' ? p.secondary : fallback.secondary,
+      rate:      Number.isFinite(p.rate) && p.rate > 0 ? p.rate : fallback.rate,
+    };
+  } catch {
+    return defaultConverterPrefs();
+  }
+}
+
+export async function saveConverterPrefs(prefs: ConverterPrefs): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.converter, JSON.stringify(prefs));
+  } catch (e) {
+    captureError(e, { op: 'saveConverterPrefs' });
+  }
+}
+
+// ── Biometric app lock ───────────────────────────────────────────
+// We never store, see, or handle any biometric data ourselves — this flag
+// only remembers whether the user asked the OS to gate the app behind
+// Face ID / fingerprint. The actual check happens in the OS each time.
+export async function loadBiometricEnabled(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(KEYS.biometric)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export async function saveBiometricEnabled(enabled: boolean): Promise<void> {
+  try {
+    if (enabled) await AsyncStorage.setItem(KEYS.biometric, '1');
+    else await AsyncStorage.removeItem(KEYS.biometric);
+  } catch (e) {
+    captureError(e, { op: 'saveBiometricEnabled' });
+  }
+}
+
+// One-time "enable Face ID / fingerprint?" offer, shown after the first-run
+// notice. Tracked separately so it never nags again once answered either way.
+export async function hasSeenBiometricPrompt(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(KEYS.bioPromptAck)) !== null;
+  } catch {
+    return true;
+  }
+}
+
+export async function markBiometricPromptSeen(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.bioPromptAck, '1');
   } catch { /* non-critical */ }
 }
 

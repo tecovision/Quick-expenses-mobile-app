@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Currency, DeletedExpenseFile, Expense, ExpenseFile } from '../types';
+import { Currency, DeletedExpenseFile, Expense, ExpenseFile, Note, TodoItem } from '../types';
 import {
   loadFiles, saveFiles,
   loadDeletedFiles, saveDeletedFiles,
@@ -8,6 +8,11 @@ import {
   hasSeeded, markSeeded,
   loadReminderPrefs, saveReminderPrefs, DEFAULT_REMINDER, ReminderPrefs,
   hasAcknowledgedNotice, markNoticeAcknowledged,
+  loadTodos, saveTodos,
+  loadNotes, saveNotes,
+  loadConverterPrefs, saveConverterPrefs, defaultConverterPrefs, ConverterPrefs,
+  loadBiometricEnabled, saveBiometricEnabled,
+  hasSeenBiometricPrompt, markBiometricPromptSeen,
 } from '../services/storage';
 import { deleteAttachment } from '../services/attachments';
 import {
@@ -15,6 +20,7 @@ import {
   scheduleDailyReminder,
   cancelDailyReminder,
 } from '../services/notifications';
+import { isBiometricAvailable, authenticate } from '../services/biometric';
 import { DEFAULT_CURRENCY } from '../constants/currencies';
 import { uid } from '../utils/helpers';
 
@@ -36,6 +42,17 @@ interface StoreState {
   showFirstRunNotice: boolean;
   reminder: ReminderPrefs;
 
+  todos: TodoItem[];
+  notes: Note[];
+  converter: ConverterPrefs;
+
+  biometricSupported: boolean;
+  biometricEnabled: boolean;
+  /** One-time "enable Face ID / fingerprint?" offer, after the privacy notice. */
+  showBiometricPrompt: boolean;
+  /** True whenever the app should show the lock screen instead of its content. */
+  isAppLocked: boolean;
+
   loadData: () => Promise<void>;
   getFile: (id: string) => ExpenseFile | undefined;
 
@@ -47,6 +64,32 @@ interface StoreState {
   setReminderEnabled: (enabled: boolean) => Promise<boolean>;
   /** Change the reminder time (and reschedule if it is currently on). */
   setReminderTime: (hour: number, minute: number) => Promise<void>;
+
+  // ── To-Do list ─────────────────────────────────────────────────
+  addTodo: (text: string) => void;
+  toggleTodo: (id: string) => void;
+  editTodo: (id: string, text: string) => void;
+  deleteTodo: (id: string) => void;
+  clearCompletedTodos: () => void;
+
+  // ── Notepad ────────────────────────────────────────────────────
+  addNote: (title: string, body: string) => void;
+  updateNote: (id: string, title: string, body: string) => void;
+  deleteNote: (id: string) => void;
+
+  // ── Currency converter ────────────────────────────────────────
+  setConverterPrefs: (prefs: Partial<ConverterPrefs>) => void;
+  swapConverterCurrencies: () => void;
+
+  // ── App lock (Face ID / fingerprint) ─────────────────────────
+  /** Dismiss the one-time offer without enabling it. */
+  dismissBiometricPrompt: () => void;
+  /** Turn the lock on/off. Confirms with a live auth check first; returns false on failure/cancel. */
+  setBiometricEnabled: (enabled: boolean) => Promise<boolean>;
+  /** Prompt the OS and, on success, unlock the app. */
+  unlockApp: () => Promise<boolean>;
+  /** Re-lock (called when the app returns from the background). */
+  lockApp: () => void;
 
   // ── Files ──────────────────────────────────────────────────────
   addFile: (name: string) => void;
@@ -87,8 +130,20 @@ export const useStore = create<StoreState>((set, get) => ({
   showFirstRunNotice: false,
   reminder: DEFAULT_REMINDER,
 
+  todos: [],
+  notes: [],
+  converter: defaultConverterPrefs(),
+
+  biometricSupported: false,
+  biometricEnabled: false,
+  showBiometricPrompt: false,
+  isAppLocked: false,
+
   loadData: async () => {
-    const [files, allDeletedFiles, currency, firstLaunch, seeded, reminder, noticeAck] = await Promise.all([
+    const [
+      files, allDeletedFiles, currency, firstLaunch, seeded, reminder, noticeAck,
+      todos, notes, converter, biometricEnabled, biometricSupported, bioPromptSeen,
+    ] = await Promise.all([
       loadFiles(),
       loadDeletedFiles(),
       loadCurrency(),
@@ -96,6 +151,12 @@ export const useStore = create<StoreState>((set, get) => ({
       hasSeeded(),
       loadReminderPrefs(),
       hasAcknowledgedNotice(),
+      loadTodos(),
+      loadNotes(),
+      loadConverterPrefs(),
+      loadBiometricEnabled(),
+      isBiometricAvailable(),
+      hasSeenBiometricPrompt(),
     ]);
 
     // Re-assert the scheduled reminder on every launch — cheap, and it
@@ -144,6 +205,15 @@ export const useStore = create<StoreState>((set, get) => ({
       showCurrencyPickerOnLaunch: firstLaunch,
       showFirstRunNotice: !noticeAck,
       reminder,
+      todos,
+      notes,
+      converter,
+      biometricSupported,
+      biometricEnabled,
+      showBiometricPrompt: biometricSupported && !biometricEnabled && !bioPromptSeen,
+      // Start locked on cold launch whenever the lock is on — the app only
+      // opens once unlockApp() succeeds.
+      isAppLocked: biometricEnabled,
     });
   },
 
@@ -307,5 +377,121 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ reminder });
     saveReminderPrefs(reminder);
     if (reminder.enabled) await scheduleDailyReminder(hour, minute);
+  },
+
+  // ── To-Do list ───────────────────────────────────────────────────
+  addTodo: (text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const item: TodoItem = { id: uid(), text: trimmed, done: false, createdAt: new Date().toISOString() };
+    const todos = [item, ...get().todos];
+    set({ todos });
+    saveTodos(todos);
+  },
+
+  toggleTodo: (id) => {
+    const todos = get().todos.map(t => (t.id === id ? { ...t, done: !t.done } : t));
+    set({ todos });
+    saveTodos(todos);
+  },
+
+  editTodo: (id, text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const todos = get().todos.map(t => (t.id === id ? { ...t, text: trimmed } : t));
+    set({ todos });
+    saveTodos(todos);
+  },
+
+  deleteTodo: (id) => {
+    const todos = get().todos.filter(t => t.id !== id);
+    set({ todos });
+    saveTodos(todos);
+  },
+
+  clearCompletedTodos: () => {
+    const todos = get().todos.filter(t => !t.done);
+    set({ todos });
+    saveTodos(todos);
+  },
+
+  // ── Notepad ──────────────────────────────────────────────────────
+  addNote: (title, body) => {
+    const trimmedBody = body.trim();
+    if (!title.trim() && !trimmedBody) return;
+    const now = new Date().toISOString();
+    const note: Note = {
+      id: uid(),
+      title: title.trim(),
+      body: trimmedBody,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const notes = [note, ...get().notes];
+    set({ notes });
+    saveNotes(notes);
+  },
+
+  updateNote: (id, title, body) => {
+    const notes = get().notes.map(n =>
+      n.id === id
+        ? { ...n, title: title.trim(), body: body.trim(), updatedAt: new Date().toISOString() }
+        : n
+    );
+    set({ notes });
+    saveNotes(notes);
+  },
+
+  deleteNote: (id) => {
+    const notes = get().notes.filter(n => n.id !== id);
+    set({ notes });
+    saveNotes(notes);
+  },
+
+  // ── Currency converter ────────────────────────────────────────────
+  setConverterPrefs: (prefs) => {
+    const converter = { ...get().converter, ...prefs };
+    set({ converter });
+    saveConverterPrefs(converter);
+  },
+
+  swapConverterCurrencies: () => {
+    const { primary, secondary, rate } = get().converter;
+    const converter = {
+      primary: secondary,
+      secondary: primary,
+      // Invert so "1 new-primary = rate new-secondary" still holds.
+      rate: rate > 0 ? Math.round((1 / rate) * 1e6) / 1e6 : rate,
+    };
+    set({ converter });
+    saveConverterPrefs(converter);
+  },
+
+  // ── App lock (Face ID / fingerprint) ──────────────────────────────
+  dismissBiometricPrompt: () => {
+    set({ showBiometricPrompt: false });
+    markBiometricPromptSeen(); // fire-and-forget
+  },
+
+  setBiometricEnabled: async (enabled) => {
+    if (enabled) {
+      // Confirm the lock actually works on this device before committing to it.
+      const ok = await authenticate('Confirm to enable app lock');
+      if (!ok) return false;
+    }
+    set({ biometricEnabled: enabled, showBiometricPrompt: false, isAppLocked: false });
+    await saveBiometricEnabled(enabled);
+    await markBiometricPromptSeen();
+    return true;
+  },
+
+  unlockApp: async () => {
+    const ok = await authenticate('Unlock QuickExpenses');
+    if (ok) set({ isAppLocked: false });
+    return ok;
+  },
+
+  lockApp: () => {
+    if (get().biometricEnabled) set({ isAppLocked: true });
   },
 }));
