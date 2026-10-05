@@ -20,7 +20,9 @@ import { useStore } from '@/store/useStore';
 import { FileCard } from '@/components/FileCard';
 import { EmptyState } from '@/components/EmptyState';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { IconButton } from '@/components/IconButton';
+import { Button } from '@/components/Button';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 import { Currency } from '@/types';
 import { MAX_FILE_NAME_LENGTH } from '@/utils/helpers';
 
@@ -89,19 +91,6 @@ export default function HomeScreen() {
     }
   };
 
-  const AddFileCard = () => (
-    <TouchableOpacity
-      style={styles.addCard}
-      onPress={() => setShowModal(true)}
-      activeOpacity={0.75}
-    >
-      <View style={styles.addCardIcon}>
-        <Ionicons name="add-circle-outline" size={22} color={colors.textMuted} />
-      </View>
-      <Text style={styles.addCardText}>Add new file</Text>
-    </TouchableOpacity>
-  );
-
   return (
     <SafeAreaView style={styles.safe}>
 
@@ -118,37 +107,23 @@ export default function HomeScreen() {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity
+          <IconButton
+            name={searchOpen ? 'close-outline' : 'search-outline'}
             onPress={toggleSearch}
-            style={styles.iconBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityRole="button"
+            variant={searchOpen ? 'tinted' : 'surface'}
+            color={searchOpen ? colors.accent : colors.textPrimary}
             accessibilityLabel={searchOpen ? 'Close search' : 'Search files'}
-          >
-            <Ionicons
-              name={searchOpen ? 'close-outline' : 'search-outline'}
-              size={22}
-              color={searchOpen ? colors.accent : colors.textPrimary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
+          />
+          <IconButton
+            name="grid-outline"
             onPress={() => router.push('/tools')}
-            style={styles.iconBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityRole="button"
             accessibilityLabel="Tools"
-          >
-            <Ionicons name="grid-outline" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity
+          />
+          <IconButton
+            name="settings-outline"
             onPress={() => router.push('/settings')}
-            style={styles.iconBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityRole="button"
             accessibilityLabel="Settings"
-          >
-            <Ionicons name="settings-outline" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
+          />
         </View>
       </View>
 
@@ -194,7 +169,6 @@ export default function HomeScreen() {
             colors={[colors.accent]}
           />
         }
-        ListHeaderComponent={<AddFileCard />}
         ListEmptyComponent={
           searchOpen && query.trim() ? (
             <EmptyState
@@ -206,11 +180,22 @@ export default function HomeScreen() {
             <EmptyState
               icon="folder-open-outline"
               title="No expense files"
-              subtitle="Tap 'Add new file' above to get started"
+              subtitle="Tap the + button below to create one"
             />
           )
         }
       />
+
+      {/* ── Add file FAB ── */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowModal(true)}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Add new file"
+      >
+        <Ionicons name="add" size={28} color={colors.white} />
+      </TouchableOpacity>
 
       {/* ── New file modal ── */}
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={closeModal}>
@@ -234,12 +219,8 @@ export default function HomeScreen() {
                 maxLength={MAX_FILE_NAME_LENGTH}
               />
               <View style={styles.buttons}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={closeModal}>
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.createBtn} onPress={handleCreate}>
-                  <Text style={styles.createText}>Create</Text>
-                </TouchableOpacity>
+                <Button title="Cancel" variant="secondary" onPress={closeModal} style={styles.flexBtn} />
+                <Button title="Create" onPress={handleCreate} style={styles.flexBtn} />
               </View>
             </Pressable>
           </KeyboardAvoidingView>
@@ -290,8 +271,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-  iconBtn: { padding: spacing.xs },
-
   // ── Search ──────────────────────────────────────────────────
   searchWrap: {
     flexDirection: 'row',
@@ -313,36 +292,23 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
-  // ── Add new file card ────────────────────────────────────────
-  addCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.bgCard,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.borderLight,
-    borderStyle: 'dashed',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.base,
-    marginBottom: spacing.sm,
-  },
-  addCardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.bgSurface,
+  // ── List ─────────────────────────────────────────────────────
+  // Extra bottom padding keeps the last card clear of the FAB.
+  list: { paddingHorizontal: spacing.base, paddingBottom: 96, paddingTop: spacing.sm },
+
+  // ── Floating action button ────────────────────────────────────
+  fab: {
+    position: 'absolute',
+    right: spacing.base,
+    bottom: spacing.xl,
+    width: 58,
+    height: 58,
+    borderRadius: radius.full,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.md,
   },
-  addCardText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.medium,
-    color: colors.textMuted,
-  },
-
-  // ── List ─────────────────────────────────────────────────────
-  list: { paddingHorizontal: spacing.base, paddingBottom: 32, paddingTop: spacing.sm },
 
   // ── Modal ─────────────────────────────────────────────────────
   overlay: {
@@ -380,29 +346,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     color: colors.textPrimary,
   },
-  buttons:   { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xl },
-  cancelBtn: {
-    flex: 1,
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  cancelText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.medium,
-    color: colors.textMuted,
-  },
-  createBtn: {
-    flex: 1,
-    backgroundColor: colors.textPrimary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  createText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
-    color: colors.white,
-  },
+  buttons:  { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xl },
+  flexBtn:  { flex: 1 },
 });

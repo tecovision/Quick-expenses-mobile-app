@@ -20,6 +20,7 @@ import { deleteAttachment } from '../services/attachments';
 import { pickPhoto, PhotoSource } from '../services/photoPicker';
 import { parseAmount, MAX_PARTICULAR_LENGTH, MAX_NOTE_LENGTH } from '../utils/helpers';
 import { PhotoViewer } from './PhotoViewer';
+import { Button } from './Button';
 
 interface Props {
   visible: boolean;
@@ -206,12 +207,8 @@ export function ExpenseForm({ visible, editingExpense, onSubmit, onClose }: Prop
               {error ? <Text style={styles.error}>{error}</Text> : null}
 
               <View style={styles.buttons}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                  <Text style={styles.submitText}>{editingExpense ? 'Save' : 'Add'}</Text>
-                </TouchableOpacity>
+                <Button title="Cancel" variant="secondary" onPress={handleCancel} style={styles.flexBtn} />
+                <Button title={editingExpense ? 'Save' : 'Add'} onPress={handleSubmit} style={styles.flexBtn} />
               </View>
             </ScrollView>
           </Pressable>
@@ -327,7 +324,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   photoRemove: {
-    backgroundColor: '#FFF1F0',
+    backgroundColor: colors.dangerSoft,
   },
   error: {
     fontSize: typography.sizes.sm,
@@ -339,28 +336,5 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.xl,
   },
-  cancelBtn: {
-    flex: 1,
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  cancelText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.medium,
-    color: colors.textMuted,
-  },
-  submitBtn: {
-    flex: 1,
-    backgroundColor: colors.textPrimary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  submitText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
-    color: colors.white,
-  },
+  flexBtn: { flex: 1 },
 });

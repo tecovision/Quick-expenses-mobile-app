@@ -8,9 +8,10 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/store/useStore';
 import { DeletedExpenseFile } from '@/types';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 import { fileTotal, timeAgo } from '@/utils/helpers';
 import { useCurrency } from '@/hooks/useCurrency';
+import { IconButton } from '@/components/IconButton';
 
 export default function RecentlyDeletedScreen() {
   const deletedFiles     = useStore(s => s.deletedFiles);
@@ -50,15 +51,7 @@ export default function RecentlyDeletedScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
         <Text style={styles.title}>Recently Deleted</Text>
         {deletedFiles.length > 0 ? (
           <TouchableOpacity onPress={handleClearAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -103,17 +96,18 @@ export default function RecentlyDeletedScreen() {
                   onPress={() => handleRestore(item)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="arrow-undo-outline" size={14} color={colors.textPrimary} />
+                  <Ionicons name="arrow-undo-outline" size={14} color={colors.accent} />
                   <Text style={styles.restoreText}>Restore</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
+                <IconButton
+                  name="trash-outline"
                   onPress={() => handlePermanentDelete(item)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityRole="button"
+                  variant="ghost"
+                  size={16}
+                  color={colors.danger}
                   accessibilityLabel={`Permanently delete ${item.name}`}
-                >
-                  <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                </TouchableOpacity>
+                  style={styles.deleteIconBtn}
+                />
               </View>
             </View>
           )}
@@ -135,7 +129,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.base,
     paddingBottom: spacing.sm,
   },
-  backBtn: { padding: spacing.xs },
   title: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
@@ -184,6 +177,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.borderLight,
+    ...shadows.sm,
   },
   cardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   iconWrap: {
@@ -221,16 +215,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   restoreText: {
     fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-    color: colors.textPrimary,
+    fontWeight: typography.weights.semibold,
+    color: colors.accent,
   },
+  deleteIconBtn: { width: 32, height: 32 },
 });

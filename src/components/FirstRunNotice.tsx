@@ -1,11 +1,12 @@
 import React from 'react';
 import {
-  View, Text, Modal, TouchableOpacity, StyleSheet, Linking, ScrollView,
+  View, Text, Modal, StyleSheet, Linking, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, typography, spacing, radius } from '../constants/theme';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '../constants/legal';
+import { Button } from './Button';
 
 interface Props {
   visible: boolean;
@@ -47,9 +48,7 @@ export function FirstRunNotice({ visible, onAccept }: Props) {
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.btn} onPress={onAccept} activeOpacity={0.85}>
-            <Text style={styles.btnText}>Got it — let's go</Text>
-          </TouchableOpacity>
+          <Button title="Got it — let's go" onPress={onAccept} />
         </View>
       </SafeAreaView>
     </Modal>
@@ -66,7 +65,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     width: 56, height: 56, borderRadius: radius.lg,
-    backgroundColor: '#EAF3FF',
+    backgroundColor: colors.accentSoft,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: spacing.lg,
   },
@@ -102,16 +101,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.lg,
     paddingTop: spacing.sm,
-  },
-  btn: {
-    backgroundColor: colors.textPrimary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  btnText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
-    color: colors.white,
   },
 });

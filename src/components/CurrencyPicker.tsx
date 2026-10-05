@@ -8,6 +8,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Currency } from '../types';
 import { CURRENCIES } from '../constants/currencies';
 import { colors, typography, spacing, radius } from '../constants/theme';
+import { IconButton } from './IconButton';
+import { Button } from './Button';
 
 interface Props {
   visible: boolean;
@@ -54,9 +56,7 @@ export function CurrencyPicker({ visible, selectedCode, onSelect, onClose, isFir
             )}
           </View>
           {!isFirstLaunch && (
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
+            <IconButton name="close" onPress={onClose} accessibilityLabel="Close" />
           )}
         </View>
 
@@ -93,7 +93,7 @@ export function CurrencyPicker({ visible, selectedCode, onSelect, onClose, isFir
                   <Text style={styles.itemCode}>{item.code}</Text>
                 </View>
                 {selected && (
-                  <Ionicons name="checkmark-circle" size={20} color={colors.textPrimary} />
+                  <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
                 )}
               </TouchableOpacity>
             );
@@ -106,9 +106,7 @@ export function CurrencyPicker({ visible, selectedCode, onSelect, onClose, isFir
         {/* First-launch confirm button */}
         {isFirstLaunch && (
           <View style={styles.confirmWrap}>
-            <TouchableOpacity style={styles.confirmBtn} onPress={onClose} activeOpacity={0.85}>
-              <Text style={styles.confirmText}>Continue with {selectedCode}</Text>
-            </TouchableOpacity>
+            <Button title={`Continue with ${selectedCode}`} onPress={onClose} />
           </View>
         )}
 
@@ -178,8 +176,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
   },
   itemSelected: {
-    borderColor: colors.textPrimary,
-    backgroundColor: colors.bgSurface,
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
   },
   symbolWrap: {
     width: 40,
@@ -215,16 +213,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.borderLight,
     backgroundColor: colors.bgCard,
-  },
-  confirmBtn: {
-    backgroundColor: colors.textPrimary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  confirmText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
-    color: colors.white,
   },
 });

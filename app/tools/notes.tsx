@@ -5,10 +5,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/store/useStore';
 import { EmptyState } from '@/components/EmptyState';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { IconButton } from '@/components/IconButton';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 import { timeAgo } from '@/utils/helpers';
 import { Note } from '@/types';
 
@@ -69,24 +69,9 @@ export default function NotesScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
         <Text style={styles.title}>Notepad</Text>
-        <TouchableOpacity
-          onPress={openNew}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="New note"
-        >
-          <Ionicons name="add-circle-outline" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <IconButton name="add" onPress={openNew} variant="tinted" accessibilityLabel="New note" />
       </View>
 
       <FlatList
@@ -103,14 +88,15 @@ export default function NotesScreen() {
               ) : null}
               <Text style={styles.cardMeta}>{timeAgo(item.updatedAt)}</Text>
             </View>
-            <TouchableOpacity
+            <IconButton
+              name="trash-outline"
               onPress={() => handleDelete(item)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="button"
+              variant="ghost"
+              size={16}
+              color={colors.danger}
               accessibilityLabel={`Delete ${item.title || 'note'}`}
-            >
-              <Ionicons name="trash-outline" size={16} color={colors.danger} />
-            </TouchableOpacity>
+              style={styles.cardDeleteBtn}
+            />
           </TouchableOpacity>
         )}
         ListEmptyComponent={
@@ -130,17 +116,9 @@ export default function NotesScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.header}>
-              <TouchableOpacity
-                onPress={handleSave}
-                style={styles.backBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel="Save and close"
-              >
-                <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-              </TouchableOpacity>
+              <IconButton name="chevron-back" onPress={handleSave} accessibilityLabel="Save and close" />
               <Text style={styles.title}>{isNew ? 'New Note' : 'Edit Note'}</Text>
-              <View style={{ width: 36 }} />
+              <View style={{ width: 40 }} />
             </View>
             <Pressable style={styles.editorBody} onPress={() => {}}>
               <TextInput
@@ -180,7 +158,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.base,
     paddingBottom: spacing.sm,
   },
-  backBtn: { padding: spacing.xs },
   title: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
@@ -198,7 +175,9 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
     padding: spacing.base,
     marginBottom: spacing.sm,
+    ...shadows.sm,
   },
+  cardDeleteBtn: { width: 28, height: 28 },
   cardLeft: { flex: 1 },
   cardTitle: {
     fontSize: typography.sizes.base,

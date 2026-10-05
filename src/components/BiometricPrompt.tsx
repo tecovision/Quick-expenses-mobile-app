@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, typography, spacing, radius } from '../constants/theme';
 import { biometricLabel } from '../services/biometric';
+import { Button } from './Button';
 
 interface Props {
   visible: boolean;
@@ -48,14 +49,12 @@ export function BiometricPrompt({ visible, onEnable, onDismiss }: Props) {
               your phone — we never see or store your {label.toLowerCase()} data.
             </Text>
 
-            <TouchableOpacity
-              style={styles.enableBtn}
+            <Button
+              title={enabling ? 'Confirming…' : `Enable ${label}`}
               onPress={handleEnable}
-              activeOpacity={0.85}
-              disabled={enabling}
-            >
-              <Text style={styles.enableText}>{enabling ? 'Confirming…' : `Enable ${label}`}</Text>
-            </TouchableOpacity>
+              loading={enabling}
+              style={styles.enableBtn}
+            />
             <TouchableOpacity style={styles.notNowBtn} onPress={onDismiss} activeOpacity={0.7}>
               <Text style={styles.notNowText}>Not now</Text>
             </TouchableOpacity>
@@ -83,7 +82,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     width: 56, height: 56, borderRadius: radius.lg,
-    backgroundColor: '#EAF3FF',
+    backgroundColor: colors.accentSoft,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: spacing.lg,
   },
@@ -103,16 +102,7 @@ const styles = StyleSheet.create({
   },
   enableBtn: {
     alignSelf: 'stretch',
-    backgroundColor: colors.textPrimary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
     marginBottom: spacing.sm,
-  },
-  enableText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
-    color: colors.white,
   },
   notNowBtn: { paddingVertical: spacing.sm, alignItems: 'center' },
   notNowText: {

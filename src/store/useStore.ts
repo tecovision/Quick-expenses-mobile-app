@@ -189,8 +189,8 @@ export const useStore = create<StoreState>((set, get) => ({
       if (files.length === 0) {
         const now = new Date().toISOString();
         seededFiles = [
-          { id: uid(), name: 'Expense 1', expenses: [], createdAt: now, updatedAt: now },
-          { id: uid(), name: 'Expense 2', expenses: [], createdAt: now, updatedAt: now },
+          { id: uid(), name: 'Project 1', expenses: [], createdAt: now, updatedAt: now },
+          { id: uid(), name: 'Project 2', expenses: [], createdAt: now, updatedAt: now },
         ];
         saveFiles(seededFiles);
       }

@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, AppState } from 'react-native';
+import { View, Text, Modal, StyleSheet, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, typography, spacing, radius } from '../constants/theme';
+import { Button } from './Button';
 
 interface Props {
   visible: boolean;
@@ -52,15 +53,12 @@ export function LockScreen({ visible, onUnlock }: Props) {
           <Text style={styles.title}>QuickExpenses is locked</Text>
           <Text style={styles.subtitle}>Use Face ID or your fingerprint to continue.</Text>
 
-          <TouchableOpacity
-            style={styles.btn}
+          <Button
+            title={attempting ? 'Checking…' : 'Unlock'}
             onPress={tryUnlock}
-            activeOpacity={0.85}
-            disabled={attempting}
-          >
-            <Ionicons name="finger-print-outline" size={18} color={colors.white} />
-            <Text style={styles.btnText}>{attempting ? 'Checking…' : 'Unlock'}</Text>
-          </TouchableOpacity>
+            loading={attempting}
+            icon="finger-print-outline"
+          />
         </View>
       </SafeAreaView>
     </Modal>
@@ -77,7 +75,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     width: 64, height: 64, borderRadius: radius.xl,
-    backgroundColor: '#EAF3FF',
+    backgroundColor: colors.accentSoft,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: spacing.lg,
   },
@@ -93,19 +91,5 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: spacing.xxl,
     textAlign: 'center',
-  },
-  btn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.textPrimary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-  },
-  btnText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
-    color: colors.white,
   },
 });

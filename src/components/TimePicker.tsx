@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, typography, spacing, radius } from '../constants/theme';
 import { formatTime } from '../utils/helpers';
+import { IconButton } from './IconButton';
 
 interface Props {
   visible: boolean;
@@ -38,9 +39,7 @@ export function TimePicker({ visible, hour, minute, onSelect, onClose }: Props) 
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <Text style={styles.title}>Reminder Time</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
+          <IconButton name="close" onPress={onClose} accessibilityLabel="Close" />
         </View>
 
         <FlatList
@@ -59,7 +58,7 @@ export function TimePicker({ visible, hour, minute, onSelect, onClose }: Props) 
               >
                 <Text style={styles.itemLabel}>{item.label}</Text>
                 {selected && (
-                  <Ionicons name="checkmark-circle" size={20} color={colors.textPrimary} />
+                  <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
                 )}
               </TouchableOpacity>
             );
@@ -101,8 +100,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
   },
   itemSelected: {
-    borderColor: colors.textPrimary,
-    backgroundColor: colors.bgSurface,
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
   },
   itemLabel: {
     fontSize: typography.sizes.base,

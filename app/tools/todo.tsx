@@ -8,7 +8,8 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/store/useStore';
 import { EmptyState } from '@/components/EmptyState';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { IconButton } from '@/components/IconButton';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 import { TodoItem } from '@/types';
 
 const MAX_TODO_LENGTH = 200;
@@ -38,14 +39,15 @@ function TodoRow({
       <Text style={[styles.rowText, item.done && styles.rowTextDone]} numberOfLines={3}>
         {item.text}
       </Text>
-      <TouchableOpacity
+      <IconButton
+        name="trash-outline"
         onPress={onDelete}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityRole="button"
+        variant="ghost"
+        size={18}
+        color={colors.danger}
         accessibilityLabel={`Delete ${item.text}`}
-      >
-        <Ionicons name="trash-outline" size={18} color={colors.danger} />
-      </TouchableOpacity>
+        style={styles.rowDeleteBtn}
+      />
     </View>
   );
 }
@@ -85,15 +87,7 @@ export default function TodoScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
         <View style={styles.headerText}>
           <Text style={styles.title}>To-Do List</Text>
           {todos.length > 0 && (
@@ -105,7 +99,7 @@ export default function TodoScreen() {
             <Text style={styles.clearAll}>Clear done</Text>
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 36 }} />
+          <View style={{ width: 40 }} />
         )}
       </View>
 
@@ -170,7 +164,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
     gap: spacing.sm,
   },
-  backBtn: { padding: spacing.xs },
   headerText: { flex: 1 },
   title: {
     fontSize: typography.sizes.md,
@@ -199,8 +192,10 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
     padding: spacing.md,
     marginBottom: spacing.sm,
+    ...shadows.sm,
   },
   checkbox: {},
+  rowDeleteBtn: { width: 32, height: 32 },
   rowText: {
     flex: 1,
     fontSize: typography.sizes.base,
@@ -232,12 +227,13 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.textPrimary,
+    width: 48,
+    height: 48,
+    borderRadius: radius.full,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.sm,
   },
-  addBtnDisabled: { opacity: 0.4 },
+  addBtnDisabled: { opacity: 0.4, shadowOpacity: 0, elevation: 0 },
 });

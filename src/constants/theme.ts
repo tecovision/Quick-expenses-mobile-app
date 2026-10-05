@@ -9,7 +9,29 @@ export const colors = {
   border: 'rgba(60,60,67,0.15)',
   borderLight: 'rgba(60,60,67,0.10)',
   accent: '#007AFF',
+  accentSoft: '#EAF3FF',
+  dangerSoft: '#FFF1F0',
   white: '#FFFFFF',
+} as const;
+
+// Reusable elevation presets — a soft, consistent "lift" for primary buttons
+// and tappable cards instead of ad-hoc shadow values scattered per screen.
+// `elevation` makes these show up on Android; the shadow* fields are for iOS.
+export const shadows = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 5,
+  },
 } as const;
 
 export const typography = {

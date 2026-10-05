@@ -10,7 +10,8 @@ import Constants from 'expo-constants';
 import { useStore } from '@/store/useStore';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { TimePicker } from '@/components/TimePicker';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { IconButton } from '@/components/IconButton';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 import { Currency } from '@/types';
 import { formatTime } from '@/utils/helpers';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/legal';
@@ -118,17 +119,9 @@ export default function SettingsScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
         <Text style={styles.title}>Settings</Text>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.body}>
@@ -155,7 +148,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <View style={[styles.row, reminder.enabled ? null : { borderBottomWidth: 0 }]}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: colors.accentSoft }]}>
                 <Ionicons name="notifications-outline" size={18} color={colors.accent} />
               </View>
               <View style={styles.rowTextWrap}>
@@ -201,7 +194,7 @@ export default function SettingsScreen() {
             <View style={styles.card}>
               <View style={[styles.row, { borderBottomWidth: 0 }]}>
                 <View style={styles.rowLeft}>
-                  <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
+                  <View style={[styles.iconWrap, { backgroundColor: colors.accentSoft }]}>
                     <Ionicons name="finger-print-outline" size={18} color={colors.accent} />
                   </View>
                   <View style={styles.rowTextWrap}>
@@ -233,7 +226,7 @@ export default function SettingsScreen() {
             disabled={bulkExporting}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconWrap, { backgroundColor: '#EAF6FF' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: colors.accentSoft }]}>
                 <Ionicons name="archive-outline" size={18} color={colors.accent} />
               </View>
               <View>
@@ -260,7 +253,7 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconWrap, { backgroundColor: '#FFF1F0' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: colors.dangerSoft }]}>
                 <Ionicons name="trash-outline" size={18} color={colors.danger} />
               </View>
               <Text style={styles.rowTitle}>Recently Deleted</Text>
@@ -285,7 +278,7 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: colors.accentSoft }]}>
                 <Ionicons name="shield-checkmark-outline" size={18} color={colors.accent} />
               </View>
               <Text style={styles.rowTitle}>Privacy Policy</Text>
@@ -299,7 +292,7 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.rowLeft}>
-              <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: colors.accentSoft }]}>
                 <Ionicons name="document-text-outline" size={18} color={colors.accent} />
               </View>
               <Text style={styles.rowTitle}>Terms of Use</Text>
@@ -309,7 +302,7 @@ export default function SettingsScreen() {
 
           <View style={[styles.row, { borderBottomWidth: 0 }]}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconWrap, { backgroundColor: '#EFF6FF' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: colors.accentSoft }]}>
                 <Ionicons name="information-circle-outline" size={18} color="#2563EB" />
               </View>
               <Text style={styles.rowTitle}>Version</Text>
@@ -352,7 +345,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.base,
     paddingBottom: spacing.sm,
   },
-  backBtn: { padding: spacing.xs },
   title: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
@@ -375,6 +367,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
     overflow: 'hidden',
+    ...shadows.sm,
   },
 
   row: {

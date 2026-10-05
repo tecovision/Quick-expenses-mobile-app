@@ -25,6 +25,7 @@ import { useStore } from '@/store/useStore';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { UndoToast } from '@/components/UndoToast';
 import { PhotoViewer } from '@/components/PhotoViewer';
+import { IconButton } from '@/components/IconButton';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import {
   formatDateTime,
@@ -589,15 +590,7 @@ export default function FileScreen() {
 
       {/* ── Header ── */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
 
         {isRenaming ? (
           <TextInput
@@ -622,24 +615,18 @@ export default function FileScreen() {
             <ActivityIndicator size="small" color={colors.textPrimary} />
           ) : (
             <>
-              <TouchableOpacity
+              <IconButton
+                name="download-outline"
                 onPress={promptDownload}
-                style={styles.iconBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                accessibilityRole="button"
+                size={19}
                 accessibilityLabel="Download file"
-              >
-                <Ionicons name="download-outline" size={21} color={colors.textPrimary} />
-              </TouchableOpacity>
-              <TouchableOpacity
+              />
+              <IconButton
+                name="share-social-outline"
                 onPress={promptShare}
-                style={styles.iconBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                accessibilityRole="button"
+                size={18}
                 accessibilityLabel="Share file"
-              >
-                <Ionicons name="share-social-outline" size={20} color={colors.textPrimary} />
-              </TouchableOpacity>
+              />
             </>
           )}
         </View>
@@ -993,7 +980,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
     gap: spacing.sm,
   },
-  backBtn: { padding: spacing.xs },
   nameTouchable: {
     flex: 1,
     flexDirection: 'row',
@@ -1023,7 +1009,6 @@ const styles = StyleSheet.create({
     minWidth: 56,
     justifyContent: 'flex-end',
   },
-  iconBtn: { padding: spacing.xs },
 
   // ── Search ──────────────────────────────────────────────────
   searchWrap: {

@@ -7,7 +7,8 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/store/useStore';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { IconButton } from '@/components/IconButton';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 import { Currency } from '@/types';
 import { CURRENCIES } from '@/constants/currencies';
 import { approxRate } from '@/constants/approxRates';
@@ -97,7 +98,7 @@ export default function ConverterScreen() {
         <TouchableOpacity style={styles.currencyChip} onPress={onPickCurrency} activeOpacity={0.7}>
           <Text style={styles.currencySymbol}>{currency.symbol}</Text>
           <Text style={styles.currencyCode}>{currency.code}</Text>
-          <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
+          <Ionicons name="chevron-down" size={14} color={colors.accent} />
         </TouchableOpacity>
         <TextInput
           style={styles.amountInput}
@@ -116,17 +117,9 @@ export default function ConverterScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
         <Text style={styles.title}>Currency Converter</Text>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <KeyboardAvoidingView
@@ -192,7 +185,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.base,
     paddingBottom: spacing.sm,
   },
-  backBtn: { padding: spacing.xs },
   title: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
@@ -207,6 +199,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
     padding: spacing.base,
+    ...shadows.sm,
   },
   cardLabel: {
     fontSize: typography.sizes.xs,
@@ -220,20 +213,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.md,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.full,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   currencySymbol: {
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
+    color: colors.accent,
   },
   currencyCode: {
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.semibold,
-    color: colors.textPrimary,
+    color: colors.accent,
   },
   amountInput: {
     flex: 1,
@@ -245,13 +238,14 @@ const styles = StyleSheet.create({
 
   swapBtn: {
     alignSelf: 'center',
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radius.full,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: spacing.sm,
+    ...shadows.md,
   },
 
   rateCard: {
@@ -264,6 +258,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
     padding: spacing.base,
     marginTop: spacing.xl,
+    ...shadows.sm,
   },
   rateLabel: {
     fontSize: typography.sizes.base,

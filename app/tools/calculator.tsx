@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { IconButton } from '@/components/IconButton';
 import {
   CalculatorState,
   Operator,
@@ -72,17 +72,9 @@ export default function CalculatorScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
         <Text style={styles.title}>Calculator</Text>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       {/* Display */}
@@ -147,7 +139,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.base,
     paddingBottom: spacing.sm,
   },
-  backBtn: { padding: spacing.xs },
   title: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
@@ -199,6 +190,7 @@ const styles = StyleSheet.create({
   keyOperator: {
     backgroundColor: colors.accent,
     borderColor: colors.accent,
+    ...shadows.sm,
   },
   keyFunction: {
     backgroundColor: colors.bgSurface,

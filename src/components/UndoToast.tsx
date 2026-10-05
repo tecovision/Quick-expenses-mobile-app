@@ -86,10 +86,10 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   undoBtn: {
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: radius.full,
+    backgroundColor: colors.accent,
   },
   undoText: {
     fontSize: typography.sizes.sm,

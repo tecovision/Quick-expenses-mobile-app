@@ -80,7 +80,7 @@ describe('loadData — default file seeding', () => {
     await useStore.getState().loadData();
 
     const names = useStore.getState().files.map(f => f.name);
-    expect(names).toEqual(['Expense 1', 'Expense 2']);
+    expect(names).toEqual(['Project 1', 'Project 2']);
     expect(mockedStorage.markSeeded).toHaveBeenCalled();
   });
 

@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { IconButton } from '@/components/IconButton';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
 const TOOLS: {
   href: '/tools/converter' | '/tools/calculator' | '/tools/todo' | '/tools/notes';
@@ -17,7 +18,7 @@ const TOOLS: {
     icon: 'swap-horizontal-outline',
     title: 'Currency Converter',
     subtitle: 'Convert between two currencies',
-    tint: '#EAF3FF',
+    tint: colors.accentSoft,
   },
   {
     href: '/tools/calculator',
@@ -46,17 +47,9 @@ export default function ToolsScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
         <Text style={styles.title}>Tools</Text>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.grid}>
@@ -89,7 +82,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.base,
     paddingBottom: spacing.sm,
   },
-  backBtn: { padding: spacing.xs },
   title: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
@@ -108,6 +100,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
     padding: spacing.base,
+    ...shadows.sm,
   },
   iconWrap: {
     width: 44,

@@ -11,10 +11,11 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { ExpenseFile } from '../types';
-import { colors, typography, spacing, radius } from '../constants/theme';
+import { colors, typography, spacing, radius, shadows } from '../constants/theme';
 import { fileTotal } from '../utils/helpers';
 import { useStore } from '../store/useStore';
 import { useCurrency } from '../hooks/useCurrency';
+import { IconButton } from './IconButton';
 
 interface Props {
   file: ExpenseFile;
@@ -103,7 +104,7 @@ export function FileCard({ file }: Props) {
         >
           <View style={styles.left}>
             <View style={styles.iconWrap}>
-              <Ionicons name="document-text-outline" size={20} color={colors.textPrimary} />
+              <Ionicons name="document-text-outline" size={20} color={colors.accent} />
             </View>
             <View style={styles.info}>
               <Text style={styles.name} numberOfLines={1}>
@@ -116,14 +117,15 @@ export function FileCard({ file }: Props) {
           </View>
           <View style={styles.right}>
             <Text style={styles.total}>{formatAmount(total)}</Text>
-            <TouchableOpacity
+            <IconButton
+              name="trash-outline"
               onPress={handleDelete}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="button"
+              variant="ghost"
+              size={16}
+              color={colors.danger}
               accessibilityLabel={`Delete ${file.name}`}
-            >
-              <Ionicons name="trash-outline" size={16} color={colors.danger} />
-            </TouchableOpacity>
+              style={styles.deleteIconBtn}
+            />
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -165,11 +167,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgCard,
     borderRadius: radius.lg,
     padding: spacing.base,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadows.sm,
   },
   left: {
     flexDirection: 'row',
@@ -180,7 +178,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.md,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
@@ -206,4 +204,5 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     color: colors.textPrimary,
   },
+  deleteIconBtn: { width: 28, height: 28 },
 });
