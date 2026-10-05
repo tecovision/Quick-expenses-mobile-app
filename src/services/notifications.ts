@@ -1,4 +1,3 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { captureError } from './monitoring';
 
@@ -7,23 +6,49 @@ import { captureError } from './monitoring';
  * network call — the OS fires a notification we scheduled. Nothing about the
  * user or their expenses leaves the device, so this does not change the
  * privacy policy or the Play "Data safety" answers.
+ *
+ * expo-notifications is imported lazily (dynamic import, not a static
+ * top-level `import`). Expo Router's dev server does a synchronous, Node-side
+ * walk of the whole app/ import graph on startup to build the route table.
+ * expo-notifications has a module-level side effect that throws the moment
+ * it's evaluated outside a real app runtime (the "removed from Expo Go in
+ * SDK 53" push warning) — under a plain top-level import that crashes the
+ * route-table walk and takes the entire `expo start` dev server down with it,
+ * before a single device even connects. A dynamic import only resolves when
+ * one of the functions below actually runs inside the live app (Expo Go or a
+ * real build), which that walk never reaches.
  */
+
+type NotificationsModule = typeof import('expo-notifications');
 
 const REMINDER_ID = 'daily-expense-reminder';
 const ANDROID_CHANNEL = 'reminders';
 
-// Reminders that arrive while the app is open are low-value; show them anyway
-// (Android users expect it) but never make noise or touch the badge.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+let modulePromise: Promise<NotificationsModule> | null = null;
+let handlerRegistered = false;
 
-async function ensureAndroidChannel(): Promise<void> {
+async function getNotifications(): Promise<NotificationsModule> {
+  if (!modulePromise) modulePromise = import('expo-notifications');
+  const Notifications = await modulePromise;
+
+  if (!handlerRegistered) {
+    handlerRegistered = true;
+    // Reminders that arrive while the app is open are low-value; show them
+    // anyway (Android users expect it) but never make noise or touch the badge.
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+  }
+
+  return Notifications;
+}
+
+async function ensureAndroidChannel(Notifications: NotificationsModule): Promise<void> {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL, {
     name: 'Reminders',
@@ -35,6 +60,7 @@ async function ensureAndroidChannel(): Promise<void> {
 /** Current permission state, without prompting. */
 export async function hasNotificationPermission(): Promise<boolean> {
   try {
+    const Notifications = await getNotifications();
     const settings = await Notifications.getPermissionsAsync();
     return settings.granted;
   } catch {
@@ -49,6 +75,7 @@ export async function hasNotificationPermission(): Promise<boolean> {
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   try {
+    const Notifications = await getNotifications();
     const current = await Notifications.getPermissionsAsync();
     if (current.granted) return true;
     if (!current.canAskAgain) return false;
@@ -66,7 +93,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
  */
 export async function scheduleDailyReminder(hour: number, minute: number): Promise<void> {
   try {
-    await ensureAndroidChannel();
+    const Notifications = await getNotifications();
+    await ensureAndroidChannel(Notifications);
     await cancelDailyReminder();
     await Notifications.scheduleNotificationAsync({
       identifier: REMINDER_ID,
@@ -88,6 +116,7 @@ export async function scheduleDailyReminder(hour: number, minute: number): Promi
 
 export async function cancelDailyReminder(): Promise<void> {
   try {
+    const Notifications = await getNotifications();
     await Notifications.cancelScheduledNotificationAsync(REMINDER_ID);
   } catch {
     /* nothing scheduled — fine */
