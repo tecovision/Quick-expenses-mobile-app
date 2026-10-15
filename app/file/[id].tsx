@@ -757,7 +757,6 @@ export default function FileScreen() {
               <Text style={[styles.indexText, styles.inputIndex]} maxFontSizeMultiplier={TABLE_FONT_CAP}>
                 {file.expenses.length + 1}
               </Text>
-              <View style={styles.colDividerLight} />
 
               <TextInput
                 ref={particularRef}
@@ -792,7 +791,6 @@ export default function FileScreen() {
                   color={particular.trim() ? colors.white : 'rgba(255,255,255,0.4)'}
                 />
               </TouchableOpacity>
-              <View style={styles.colDividerLight} />
 
               <TextInput
                 ref={amountRef}
@@ -813,42 +811,30 @@ export default function FileScreen() {
                 multiline={false}
               />
 
-              <View style={[styles.inputBtnCluster, { width: COL_PENCIL + COL_DELETE }]}>
-                <TouchableOpacity
-                  style={styles.inputClusterBtn}
-                  onPress={toggleExtras}
-                  hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={extrasOpen ? 'Hide note field' : 'Add a note'}
-                >
-                  <Ionicons
-                    name={extrasOpen ? 'remove' : 'add'}
-                    size={16}
-                    color={
-                      extrasOpen || note.trim() || photoUri
-                        ? colors.white
-                        : 'rgba(255,255,255,0.55)'
-                    }
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.inputClusterBtn}
-                  onPress={promptAttachPhoto}
-                  hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Attach photo"
-                >
-                  <Ionicons
-                    name="camera-outline"
-                    size={16}
-                    color={photoUri ? colors.white : 'rgba(255,255,255,0.75)'}
-                  />
-                </TouchableOpacity>
-              </View>
+              {/* One button for everything extra — note and photo both live
+                  in the panel it opens below, instead of a separate always-
+                  visible camera icon crowding this row. */}
+              <TouchableOpacity
+                style={styles.inputClusterBtn}
+                onPress={toggleExtras}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                accessibilityRole="button"
+                accessibilityLabel={extrasOpen ? 'Hide note and photo' : 'Add note or photo'}
+              >
+                <Ionicons
+                  name={extrasOpen ? 'remove' : 'add'}
+                  size={18}
+                  color={
+                    extrasOpen || note.trim() || photoUri
+                      ? colors.white
+                      : 'rgba(255,255,255,0.55)'
+                  }
+                />
+              </TouchableOpacity>
             </View>
           )}
 
-          {/* ── Expanded extras panel — note only ── */}
+          {/* ── Expanded extras panel — note + photo together ── */}
           {!isSearching && extrasOpen && (
             <View style={styles.extrasPanel}>
               {/* Note has a multiline keyboard, so the return key inserts a
@@ -879,9 +865,10 @@ export default function FileScreen() {
                 />
               </View>
 
-              {/* If a photo is already attached via the camera icon, show its thumbnail here */}
-              {photoUri && (
-                <View style={styles.extrasActions}>
+              {/* Photo lives here too now — a thumbnail once attached,
+                  otherwise one small pill to attach one. */}
+              <View style={styles.extrasActions}>
+                {photoUri ? (
                   <View style={styles.thumbWrap}>
                     <TouchableOpacity onPress={() => setViewerUri(photoUri)} activeOpacity={0.85}>
                       <Image source={{ uri: photoUri }} style={styles.thumb} />
@@ -894,8 +881,19 @@ export default function FileScreen() {
                       <Ionicons name="close" size={12} color={colors.white} />
                     </TouchableOpacity>
                   </View>
-                </View>
-              )}
+                ) : (
+                  <TouchableOpacity
+                    style={styles.extraPill}
+                    onPress={promptAttachPhoto}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Attach photo"
+                  >
+                    <Ionicons name="camera-outline" size={14} color={colors.white} />
+                    <Text style={styles.extraPillText}>Attach Photo</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -1195,9 +1193,12 @@ const styles = StyleSheet.create({
   },
 
   // ── Input row — fixed below ScrollView ───────────────────
+  // Minimal by design: no internal dividers chopping it into segments, just
+  // consistent spacing — and one trailing button instead of two.
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.xs,
     paddingVertical: 11,
     paddingHorizontal: spacing.md,
     backgroundColor: colors.accent,
@@ -1217,25 +1218,19 @@ const styles = StyleSheet.create({
   },
   amountInput: { textAlign: 'right' },
 
-  // ── Input row button cluster (+ and camera) ───────────────
-  inputBtnCluster: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  // Trailing "+" — opens the extras panel (note + photo together).
   inputClusterBtn: {
-    flex: 1,
+    width: 30,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
   },
 
   // Enter button sits between Description and Amount fields
   inputCenterBtn: {
-    width: 30,
+    width: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 2,
   },
 
   // ── Expanded extras panel (note + photo) ───────────────────

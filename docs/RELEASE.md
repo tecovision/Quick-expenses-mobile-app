@@ -303,9 +303,12 @@ on a device. Walk these on at least two different phones:
 - [ ] **Keyboard**: open a file — the blue input row sits fully above the
       keyboard, nothing cut off
 - [ ] **Rapid entry**: add 10 entries in a row — keyboard never closes between them
-- [ ] **Note**: tap `+`, type a note, tap **Done** — keyboard dismisses
-- [ ] **Photo**: attach from camera and from gallery; deny the permission once
-      and confirm the app explains rather than crashes
+- [ ] **Note/Photo panel**: tap `+` on the input row → opens one panel with
+      the note field and an "Attach Photo" pill (no separate camera icon on
+      the row anymore). Type a note, tap **Done** — keyboard dismisses
+- [ ] **Photo**: from the panel's "Attach Photo" pill, attach from camera and
+      from gallery; deny the permission once and confirm the app explains
+      rather than crashes
 - [ ] **Permanently deny** camera in system settings → confirm the "Open
       Settings" path appears
 - [ ] **Reminder**: Settings → toggle Daily reminder on → grant the notification
