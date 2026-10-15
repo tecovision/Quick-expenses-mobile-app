@@ -22,7 +22,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { IconButton } from '@/components/IconButton';
 import { Button } from '@/components/Button';
-import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows, layout } from '@/constants/theme';
 import { Currency } from '@/types';
 import { MAX_FILE_NAME_LENGTH } from '@/utils/helpers';
 
@@ -129,7 +129,7 @@ export default function HomeScreen() {
 
       {/* ── Collapsible search bar ── */}
       {searchOpen && (
-        <View style={styles.searchWrap}>
+        <View style={[styles.searchWrap, layout.content]}>
           <Ionicons name="search-outline" size={16} color={colors.textMuted} style={styles.searchIcon} />
           <TextInput
             ref={searchRef}
@@ -154,6 +154,7 @@ export default function HomeScreen() {
         data={filtered}
         keyExtractor={item => item.id}
         renderItem={({ item }) => <FileCard file={item} />}
+        style={layout.content}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

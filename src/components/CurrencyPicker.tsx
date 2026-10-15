@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Currency } from '../types';
 import { CURRENCIES } from '../constants/currencies';
-import { colors, typography, spacing, radius } from '../constants/theme';
+import { colors, typography, spacing, radius, layout } from '../constants/theme';
 import { IconButton } from './IconButton';
 import { Button } from './Button';
 
@@ -61,7 +61,7 @@ export function CurrencyPicker({ visible, selectedCode, onSelect, onClose, isFir
         </View>
 
         {/* Search */}
-        <View style={styles.searchWrap}>
+        <View style={[styles.searchWrap, layout.content]}>
           <Ionicons name="search-outline" size={16} color={colors.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
@@ -76,6 +76,7 @@ export function CurrencyPicker({ visible, selectedCode, onSelect, onClose, isFir
         {/* List */}
         <FlatList
           data={filtered}
+          style={layout.content}
           keyExtractor={item => item.code}
           renderItem={({ item }) => {
             const selected = item.code === selectedCode;

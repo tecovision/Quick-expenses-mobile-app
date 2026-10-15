@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { useStore } from '@/store/useStore';
 import { EmptyState } from '@/components/EmptyState';
 import { IconButton } from '@/components/IconButton';
-import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows, layout } from '@/constants/theme';
 import { timeAgo } from '@/utils/helpers';
 import { Note } from '@/types';
 
@@ -77,6 +77,7 @@ export default function NotesScreen() {
       <FlatList
         data={sorted}
         keyExtractor={item => item.id}
+        style={layout.content}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
@@ -120,7 +121,7 @@ export default function NotesScreen() {
               <Text style={styles.title}>{isNew ? 'New Note' : 'Edit Note'}</Text>
               <View style={{ width: 40 }} />
             </View>
-            <Pressable style={styles.editorBody} onPress={() => {}}>
+            <Pressable style={[styles.editorBody, layout.content]} onPress={() => {}}>
               <TextInput
                 style={styles.titleInput}
                 value={title}

@@ -69,3 +69,16 @@ export const radius = {
   xl: 20,
   full: 999,
 } as const;
+
+// Phones get full-width content as always. Past this width (a small/medium
+// tablet in portrait, or any foldable/desktop-size window) content is capped
+// and centered instead of stretching into unreadably long rows and giant
+// controls — apply as `style={[styles.x, layout.content]}` on the outermost
+// scroll/list/body container of a screen.
+export const layout = {
+  content: {
+    width: '100%' as const,
+    maxWidth: 640,
+    alignSelf: 'center' as const,
+  },
+};

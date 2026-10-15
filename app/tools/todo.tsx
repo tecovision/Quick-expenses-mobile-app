@@ -9,7 +9,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/store/useStore';
 import { EmptyState } from '@/components/EmptyState';
 import { IconButton } from '@/components/IconButton';
-import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows, layout } from '@/constants/theme';
 import { TodoItem } from '@/types';
 
 const MAX_TODO_LENGTH = 200;
@@ -106,6 +106,7 @@ export default function TodoScreen() {
       <FlatList
         data={todos}
         keyExtractor={item => item.id}
+        style={layout.content}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -128,7 +129,7 @@ export default function TodoScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.inputRow}>
+        <View style={[styles.inputRow, layout.content]}>
           <TextInput
             style={styles.input}
             value={text}

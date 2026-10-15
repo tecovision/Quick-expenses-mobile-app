@@ -320,13 +320,14 @@ on a device. Walk these on at least two different phones:
       confirm the "Already Added" prompt appears
 - [ ] **Rounding**: enter `100.005` → it shows `100.01`; export PDF and CSV →
       both show `100.01`, and the CSV total matches
-- [ ] **Download**: tap the download icon → pick PDF or CSV → the Android
-      folder picker appears the first time → the file lands in that folder.
-      Second download skips the picker
+- [ ] **Export menu**: tap the single export icon in a file's header → all
+      four options appear (Download PDF, Download CSV, Share PDF, Share CSV)
+- [ ] **Download**: pick "Download as PDF/CSV" → the Android folder picker
+      appears the first time → the file lands in that folder. Second download
+      skips the picker
 - [ ] **Open after download**: the "Saved" dialog offers **Open** → the file
       opens in a viewer app; **Done** dismisses it
-- [ ] **Share**: the share icon still opens the system share sheet (separate
-      from Download)
+- [ ] **Share**: "Share as PDF/CSV" opens the system share sheet
 - [ ] **First-run notice**: fresh install → the "Your data stays with you"
       screen shows first, its Privacy Policy / Terms links open in the browser,
       **Got it** dismisses it, then the currency picker appears. It does not
@@ -424,6 +425,23 @@ Already applied to keep it down:
 - header logo is a 30 KB asset, not the 800 KB app icon
 - `expo-build-properties`: `enableProguardInReleaseBuilds` +
   `enableShrinkResourcesInReleaseBuilds` (R8 code + resource shrinking)
+
+## App icon
+
+`assets/icon.png`, `adaptive-icon.png`, `splash-icon.png`, `store-icon-512.png`,
+`favicon.png`, `logo.png` (the in-app header mark), and `feature-graphic.png`
+are all generated from one source, `scripts/gen_icon.py` — a flat receipt +
+checkmark-badge mark drawn with plain PIL geometry (no external art, no font
+glyph dependency). To change a brand color or re-balance the layout, edit the
+constants/functions at the top of that script and re-run:
+
+```bash
+python scripts/gen_icon.py
+```
+
+Don't hand-edit the PNGs directly — the next script run would overwrite them.
+`android.adaptiveIcon.backgroundColor` in `app.json` is tied to this mark's
+background color (`BG_TOP`/`BG_BOTTOM` in the script); change both together.
 
 ## Known gaps / tech debt
 

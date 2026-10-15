@@ -26,7 +26,7 @@ import { ExpenseForm } from '@/components/ExpenseForm';
 import { UndoToast } from '@/components/UndoToast';
 import { PhotoViewer } from '@/components/PhotoViewer';
 import { IconButton } from '@/components/IconButton';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { colors, typography, spacing, radius, layout } from '@/constants/theme';
 import {
   formatDateTime,
   fileTotal,
@@ -556,22 +556,18 @@ export default function FileScreen() {
     }
   };
 
-  const promptDownload = () => {
+  // Download and Share used to be two separate header icons, each opening
+  // its own PDF/CSV prompt. One "Export" entry point with every combination
+  // listed is one fewer button in an already icon-dense header, with nothing
+  // lost — the Done/Cancel-prompt flow was identical either way.
+  const promptExport = () => {
     if (!requireExpenses()) return;
-    const title = isSearching ? `Download "${searchQuery}" results` : 'Download as';
-    Alert.alert(title, 'Choose a format', [
-      { text: 'PDF',         onPress: () => runDownload('pdf') },
-      { text: 'Excel (CSV)', onPress: () => runDownload('csv') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-
-  const promptShare = () => {
-    if (!requireExpenses()) return;
-    const title = isSearching ? `Share "${searchQuery}" results` : 'Share as';
-    Alert.alert(title, 'Choose a format', [
-      { text: 'PDF',         onPress: () => runShare('pdf') },
-      { text: 'Excel (CSV)', onPress: () => runShare('csv') },
+    const title = isSearching ? `Export "${searchQuery}" results` : 'Export File';
+    Alert.alert(title, 'Save a copy or hand it off', [
+      { text: 'Download as PDF', onPress: () => runDownload('pdf') },
+      { text: 'Download as CSV', onPress: () => runDownload('csv') },
+      { text: 'Share as PDF',    onPress: () => runShare('pdf') },
+      { text: 'Share as CSV',    onPress: () => runShare('csv') },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -614,26 +610,19 @@ export default function FileScreen() {
           {exporting ? (
             <ActivityIndicator size="small" color={colors.textPrimary} />
           ) : (
-            <>
-              <IconButton
-                name="download-outline"
-                onPress={promptDownload}
-                size={19}
-                accessibilityLabel="Download file"
-              />
-              <IconButton
-                name="share-social-outline"
-                onPress={promptShare}
-                size={18}
-                accessibilityLabel="Share file"
-              />
-            </>
+            <IconButton
+              name="share-outline"
+              onPress={promptExport}
+              variant="tinted"
+              size={19}
+              accessibilityLabel="Export file"
+            />
           )}
         </View>
       </View>
 
       {/* ── Search bar ── */}
-      <View style={styles.searchWrap}>
+      <View style={[styles.searchWrap, layout.content]}>
         <Ionicons name="search-outline" size={16} color={colors.textMuted} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
@@ -667,6 +656,7 @@ export default function FileScreen() {
       <View
         style={[
           styles.kav,
+          layout.content,
           {
             paddingBottom: keyboardVisible
               ? keyboardHeight + (Platform.OS === 'android' ? insets.bottom : 0)

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, typography, spacing, radius } from '../constants/theme';
+import { colors, typography, spacing, radius, layout } from '../constants/theme';
 import { formatTime } from '../utils/helpers';
 import { IconButton } from './IconButton';
 
@@ -45,6 +45,7 @@ export function TimePicker({ visible, hour, minute, onSelect, onClose }: Props) 
         <FlatList
           ref={listRef}
           data={SLOTS}
+          style={layout.content}
           keyExtractor={item => `${item.hour}:${item.minute}`}
           initialScrollIndex={selectedIndex > 3 ? selectedIndex - 3 : 0}
           getItemLayout={(_, index) => ({ length: 52, offset: 52 * index, index })}

@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { IconButton } from '@/components/IconButton';
-import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows, layout } from '@/constants/theme';
 
 const TOOLS: {
   href: '/tools/converter' | '/tools/calculator' | '/tools/todo' | '/tools/notes';
@@ -52,22 +52,24 @@ export default function ToolsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.grid}>
-        {TOOLS.map((t) => (
-          <TouchableOpacity
-            key={t.href}
-            style={styles.card}
-            onPress={() => router.push(t.href)}
-            activeOpacity={0.75}
-          >
-            <View style={[styles.iconWrap, { backgroundColor: t.tint }]}>
-              <Ionicons name={t.icon} size={24} color={colors.accent} />
-            </View>
-            <Text style={styles.cardTitle}>{t.title}</Text>
-            <Text style={styles.cardSubtitle}>{t.subtitle}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false} style={layout.content}>
+        <View style={styles.grid}>
+          {TOOLS.map((t) => (
+            <TouchableOpacity
+              key={t.href}
+              style={styles.card}
+              onPress={() => router.push(t.href)}
+              activeOpacity={0.75}
+            >
+              <View style={[styles.iconWrap, { backgroundColor: t.tint }]}>
+                <Ionicons name={t.icon} size={24} color={colors.accent} />
+              </View>
+              <Text style={styles.cardTitle}>{t.title}</Text>
+              <Text style={styles.cardSubtitle}>{t.subtitle}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

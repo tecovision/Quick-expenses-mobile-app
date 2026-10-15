@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/store/useStore';
 import { DeletedExpenseFile } from '@/types';
-import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows, layout } from '@/constants/theme';
 import { fileTotal, timeAgo } from '@/utils/helpers';
 import { useCurrency } from '@/hooks/useCurrency';
 import { IconButton } from '@/components/IconButton';
@@ -74,6 +74,7 @@ export default function RecentlyDeletedScreen() {
         <FlatList
           data={deletedFiles}
           keyExtractor={item => item.id}
+          style={layout.content}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (

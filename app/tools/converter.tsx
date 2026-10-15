@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -8,7 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/store/useStore';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { IconButton } from '@/components/IconButton';
-import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows, layout } from '@/constants/theme';
 import { Currency } from '@/types';
 import { CURRENCIES } from '@/constants/currencies';
 import { approxRate } from '@/constants/approxRates';
@@ -126,43 +126,50 @@ export default function ConverterScreen() {
         style={styles.body}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <CurrencyRow
-          label="PRIMARY"
-          currency={primary}
-          amount={amountPrimary}
-          onChangeAmount={handlePrimaryChange}
-          onPickCurrency={() => setPickerFor('primary')}
-        />
-
-        <TouchableOpacity style={styles.swapBtn} onPress={handleSwap} activeOpacity={0.75}>
-          <Ionicons name="swap-vertical" size={18} color={colors.white} />
-        </TouchableOpacity>
-
-        <CurrencyRow
-          label="SECONDARY"
-          currency={secondary}
-          amount={amountSecondary}
-          onChangeAmount={handleSecondaryChange}
-          onPickCurrency={() => setPickerFor('secondary')}
-        />
-
-        <View style={styles.rateCard}>
-          <Ionicons name="pricetag-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.rateLabel}>1 {primary.code} =</Text>
-          <TextInput
-            style={styles.rateInput}
-            value={rateText}
-            onChangeText={handleRateChange}
-            keyboardType="decimal-pad"
-            maxLength={15}
+        <ScrollView
+          style={layout.content}
+          contentContainerStyle={styles.bodyContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <CurrencyRow
+            label="PRIMARY"
+            currency={primary}
+            amount={amountPrimary}
+            onChangeAmount={handlePrimaryChange}
+            onPickCurrency={() => setPickerFor('primary')}
           />
-          <Text style={styles.rateLabel}>{secondary.code}</Text>
-        </View>
 
-        <Text style={styles.note}>
-          QuickExpenses works offline and doesn't fetch live exchange rates. The rate above is
-          a starting estimate — edit it to whatever rate you need.
-        </Text>
+          <TouchableOpacity style={styles.swapBtn} onPress={handleSwap} activeOpacity={0.75}>
+            <Ionicons name="swap-vertical" size={18} color={colors.white} />
+          </TouchableOpacity>
+
+          <CurrencyRow
+            label="SECONDARY"
+            currency={secondary}
+            amount={amountSecondary}
+            onChangeAmount={handleSecondaryChange}
+            onPickCurrency={() => setPickerFor('secondary')}
+          />
+
+          <View style={styles.rateCard}>
+            <Ionicons name="pricetag-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.rateLabel}>1 {primary.code} =</Text>
+            <TextInput
+              style={styles.rateInput}
+              value={rateText}
+              onChangeText={handleRateChange}
+              keyboardType="decimal-pad"
+              maxLength={15}
+            />
+            <Text style={styles.rateLabel}>{secondary.code}</Text>
+          </View>
+
+          <Text style={styles.note}>
+            QuickExpenses works offline and doesn't fetch live exchange rates. The rate above is
+            a starting estimate — edit it to whatever rate you need.
+          </Text>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       <CurrencyPicker
@@ -191,7 +198,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 
-  body: { flex: 1, padding: spacing.base },
+  body: { flex: 1 },
+  bodyContent: { padding: spacing.base },
 
   card: {
     backgroundColor: colors.bgCard,

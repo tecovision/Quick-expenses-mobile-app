@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows, layout } from '@/constants/theme';
 import { IconButton } from '@/components/IconButton';
 import {
   CalculatorState,
@@ -78,7 +78,7 @@ export default function CalculatorScreen() {
       </View>
 
       {/* Display */}
-      <View style={styles.displayWrap}>
+      <View style={[styles.displayWrap, layout.content]}>
         {state.operator && (
           <Text style={styles.pending}>
             {formatDisplay(String(state.storedValue))} {state.operator}
@@ -95,7 +95,7 @@ export default function CalculatorScreen() {
       </View>
 
       {/* Keypad */}
-      <View style={styles.keypad}>
+      <View style={[styles.keypad, layout.content]}>
         {ROWS.map((row, i) => (
           <View key={i} style={styles.row}>
             {row.map((key, j) => {

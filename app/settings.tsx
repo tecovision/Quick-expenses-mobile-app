@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator, Switch, Linking,
+  Alert, ActivityIndicator, Switch, Linking, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -11,7 +11,7 @@ import { useStore } from '@/store/useStore';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { TimePicker } from '@/components/TimePicker';
 import { IconButton } from '@/components/IconButton';
-import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { colors, typography, spacing, radius, shadows, layout } from '@/constants/theme';
 import { Currency } from '@/types';
 import { formatTime } from '@/utils/helpers';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/legal';
@@ -124,7 +124,11 @@ export default function SettingsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.body}>
+      <ScrollView
+        style={[styles.body, layout.content]}
+        contentContainerStyle={styles.bodyContent}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Preferences */}
         <Text style={styles.sectionLabel}>PREFERENCES</Text>
@@ -311,7 +315,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-      </View>
+      </ScrollView>
 
       {/* Currency picker */}
       <CurrencyPicker
@@ -351,7 +355,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 
-  body: { flex: 1, padding: spacing.base },
+  body: { flex: 1 },
+  bodyContent: { padding: spacing.base, paddingBottom: spacing.xxl },
 
   sectionLabel: {
     fontSize: typography.sizes.xs,
