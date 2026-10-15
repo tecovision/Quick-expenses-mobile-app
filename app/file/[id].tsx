@@ -26,6 +26,7 @@ import { ExpenseForm } from '@/components/ExpenseForm';
 import { UndoToast } from '@/components/UndoToast';
 import { PhotoViewer } from '@/components/PhotoViewer';
 import { IconButton } from '@/components/IconButton';
+import { CalculatorSheet } from '@/components/CalculatorSheet';
 import { colors, typography, spacing, radius, layout } from '@/constants/theme';
 import {
   formatDateTime,
@@ -204,6 +205,7 @@ export default function FileScreen() {
   const [photoUri, setPhotoUri]     = useState<string | null>(null);
   const [extrasOpen, setExtrasOpen] = useState(false);
   const [viewerUri, setViewerUri]   = useState<string | null>(null);
+  const [showCalculator, setShowCalculator] = useState(false);
   const particularRef = useRef<TextInput>(null);
   const amountRef     = useRef<TextInput>(null);
   const noteRef       = useRef<TextInput>(null);
@@ -778,20 +780,6 @@ export default function FileScreen() {
                 multiline={false}
               />
 
-              <TouchableOpacity
-                style={styles.inputCenterBtn}
-                onPress={handleAdd}
-                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                accessibilityRole="button"
-                accessibilityLabel="Add expense"
-              >
-                <Ionicons
-                  name="return-down-back-outline"
-                  size={15}
-                  color={particular.trim() ? colors.white : 'rgba(255,255,255,0.4)'}
-                />
-              </TouchableOpacity>
-
               <TextInput
                 ref={amountRef}
                 style={[styles.inputCell, styles.amountInput, { width: COL_AMOUNT }]}
@@ -810,6 +798,16 @@ export default function FileScreen() {
                 numberOfLines={1}
                 multiline={false}
               />
+
+              <TouchableOpacity
+                style={styles.inputClusterBtn}
+                onPress={() => setShowCalculator(true)}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                accessibilityRole="button"
+                accessibilityLabel="Open calculator"
+              >
+                <Ionicons name="calculator-outline" size={17} color="rgba(255,255,255,0.85)" />
+              </TouchableOpacity>
 
               {/* One button for everything extra — note and photo both live
                   in the panel it opens below, instead of a separate always-
@@ -838,14 +836,15 @@ export default function FileScreen() {
           {!isSearching && extrasOpen && (
             <View style={styles.extrasPanel}>
               {/* Note has a multiline keyboard, so the return key inserts a
-                  newline instead of dismissing — this Done button closes it. */}
+                  newline instead of dismissing — Done closes the whole panel
+                  (keyboard included), the same as tapping the "-" above. */}
               <View style={styles.extrasHeader}>
                 <Text style={styles.extrasLabel}>NOTE</Text>
                 <TouchableOpacity
-                  onPress={() => Keyboard.dismiss()}
+                  onPress={() => { Keyboard.dismiss(); setExtrasOpen(false); }}
                   hitSlop={{ top: 8, bottom: 8, left: 10, right: 10 }}
                   accessibilityRole="button"
-                  accessibilityLabel="Done editing note"
+                  accessibilityLabel="Done, close panel"
                 >
                   <Text style={styles.extrasDone}>Done</Text>
                 </TouchableOpacity>
@@ -947,6 +946,14 @@ export default function FileScreen() {
 
       {/* ── Photo viewer — pinch to zoom, double-tap to zoom, drag to pan ── */}
       <PhotoViewer uri={viewerUri} onClose={() => setViewerUri(null)} />
+
+      {/* ── Calculator — compute an amount without leaving the entry ── */}
+      <CalculatorSheet
+        visible={showCalculator}
+        initialValue={amount}
+        onUse={(value) => setAmount(String(value))}
+        onClose={() => setShowCalculator(false)}
+      />
 
     </SafeAreaView>
   );
@@ -1218,17 +1225,10 @@ const styles = StyleSheet.create({
   },
   amountInput: { textAlign: 'right' },
 
-  // Trailing "+" — opens the extras panel (note + photo together).
+  // Trailing icons — calculator, then "+" (opens note + photo together).
   inputClusterBtn: {
-    width: 30,
+    width: 28,
     height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Enter button sits between Description and Amount fields
-  inputCenterBtn: {
-    width: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },

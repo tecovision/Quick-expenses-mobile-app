@@ -18,8 +18,22 @@ export interface CalculatorState {
 /** Caps how many digits the display can grow to (sign and "." excluded). */
 const MAX_DIGITS = 15;
 
-export function createCalculatorState(): CalculatorState {
-  return { display: '0', storedValue: null, operator: null, waitingForOperand: false };
+export function createCalculatorState(seedDisplay?: string): CalculatorState {
+  return {
+    display: seedDisplay && /^\d/.test(seedDisplay) ? seedDisplay : '0',
+    storedValue: null,
+    operator: null,
+    waitingForOperand: false,
+  };
+}
+
+/** Comma-groups the integer part for display, e.g. "12345.6" -> "12,345.6". */
+export function formatCalculatorDisplay(display: string): string {
+  if (display === 'Error') return 'Error';
+  const [intPart, decPart] = display.replace('-', '').split('.');
+  const grouped = Number(intPart).toLocaleString('en-US');
+  const sign = display.startsWith('-') ? '-' : '';
+  return decPart !== undefined ? `${sign}${grouped}.${decPart}` : `${sign}${grouped}`;
 }
 
 const isError = (state: CalculatorState): boolean => state.display === 'Error';

@@ -7,6 +7,7 @@ import {
   clearCalculator,
   performOperator,
   equals,
+  formatCalculatorDisplay,
   CalculatorState,
 } from './calculator';
 
@@ -163,5 +164,30 @@ describe('toggleSign / percent / clear', () => {
     s = performOperator(s, '+');
     s = clearCalculator();
     expect(s).toEqual(createCalculatorState());
+  });
+});
+
+describe('createCalculatorState seeding', () => {
+  it('seeds the display from a valid numeric string', () => {
+    expect(createCalculatorState('45.5').display).toBe('45.5');
+  });
+
+  it('falls back to "0" for an empty, negative, or non-numeric seed', () => {
+    expect(createCalculatorState('').display).toBe('0');
+    expect(createCalculatorState('-5').display).toBe('0');
+    expect(createCalculatorState('abc').display).toBe('0');
+    expect(createCalculatorState(undefined).display).toBe('0');
+  });
+});
+
+describe('formatCalculatorDisplay', () => {
+  it('comma-groups the integer part', () => {
+    expect(formatCalculatorDisplay('12345.6')).toBe('12,345.6');
+    expect(formatCalculatorDisplay('1000')).toBe('1,000');
+  });
+
+  it('keeps the sign and passes Error through unchanged', () => {
+    expect(formatCalculatorDisplay('-200')).toBe('-200');
+    expect(formatCalculatorDisplay('Error')).toBe('Error');
   });
 });

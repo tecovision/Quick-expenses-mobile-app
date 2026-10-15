@@ -88,7 +88,7 @@ actually publish.
 
 ```bash
 npm run type-check     # must pass
-npm test               # must pass (93 tests)
+npm test               # must pass (97 tests)
 npx expo-doctor        # must be 18/18
 ```
 
@@ -304,11 +304,18 @@ on a device. Walk these on at least two different phones:
       keyboard, nothing cut off
 - [ ] **Rapid entry**: add 10 entries in a row — keyboard never closes between them
 - [ ] **Note/Photo panel**: tap `+` on the input row → opens one panel with
-      the note field and an "Attach Photo" pill (no separate camera icon on
-      the row anymore). Type a note, tap **Done** — keyboard dismisses
+      the note field and an "Attach Photo" pill (no separate camera icon, no
+      enter-arrow icon on the row anymore — just description, amount,
+      calculator, +). Type a note, tap **Done** — keyboard dismisses **and**
+      the panel closes, even with no note typed (same as tapping the "-")
 - [ ] **Photo**: from the panel's "Attach Photo" pill, attach from camera and
       from gallery; deny the permission once and confirm the app explains
       rather than crashes
+- [ ] **Inline calculator**: tap the calculator icon on the input row → opens
+      with the current amount (if any) already on the display → compute
+      something → **Use This Amount** → the amount field updates and the
+      sheet closes. Also check **Calculator** from the Tools hub still works
+      identically (shared keypad component)
 - [ ] **Permanently deny** camera in system settings → confirm the "Open
       Settings" path appears
 - [ ] **Reminder**: Settings → toggle Daily reminder on → grant the notification
