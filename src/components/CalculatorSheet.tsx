@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Modal, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing } from '../constants/theme';
 import { IconButton } from './IconButton';
 import { Button } from './Button';
@@ -22,6 +22,7 @@ interface Props {
  * copy a number back in by hand.
  */
 export function CalculatorSheet({ visible, initialValue, onUse, onClose }: Props) {
+  const insets = useSafeAreaInsets();
   const [state, setState] = useState<CalculatorState>(createCalculatorState());
 
   // Re-seed every time it's opened, not on every keystroke in the sheet.
@@ -41,7 +42,7 @@ export function CalculatorSheet({ visible, initialValue, onUse, onClose }: Props
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 24) + spacing.sm }]}>
           <Text style={styles.title}>Calculator</Text>
           <IconButton name="close" onPress={onClose} accessibilityLabel="Close calculator" />
         </View>

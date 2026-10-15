@@ -799,25 +799,15 @@ export default function FileScreen() {
                 multiline={false}
               />
 
-              <TouchableOpacity
-                style={styles.inputClusterBtn}
-                onPress={() => setShowCalculator(true)}
-                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                accessibilityRole="button"
-                accessibilityLabel="Open calculator"
-              >
-                <Ionicons name="calculator-outline" size={17} color="rgba(255,255,255,0.85)" />
-              </TouchableOpacity>
-
-              {/* One button for everything extra — note and photo both live
-                  in the panel it opens below, instead of a separate always-
-                  visible camera icon crowding this row. */}
+              {/* One button for everything extra — note, photo and the
+                  calculator all live in the panel it opens below, instead
+                  of separate always-visible icons crowding this row. */}
               <TouchableOpacity
                 style={styles.inputClusterBtn}
                 onPress={toggleExtras}
                 hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                 accessibilityRole="button"
-                accessibilityLabel={extrasOpen ? 'Hide note and photo' : 'Add note or photo'}
+                accessibilityLabel={extrasOpen ? 'Hide note, photo and calculator' : 'Add note, photo or calculator'}
               >
                 <Ionicons
                   name={extrasOpen ? 'remove' : 'add'}
@@ -832,7 +822,7 @@ export default function FileScreen() {
             </View>
           )}
 
-          {/* ── Expanded extras panel — note + photo together ── */}
+          {/* ── Expanded extras panel — note, photo and calculator together ── */}
           {!isSearching && extrasOpen && (
             <View style={styles.extrasPanel}>
               {/* Note has a multiline keyboard, so the return key inserts a
@@ -864,8 +854,8 @@ export default function FileScreen() {
                 />
               </View>
 
-              {/* Photo lives here too now — a thumbnail once attached,
-                  otherwise one small pill to attach one. */}
+              {/* Photo and calculator both live here — a thumbnail once a
+                  photo's attached, otherwise one small pill each. */}
               <View style={styles.extrasActions}>
                 {photoUri ? (
                   <View style={styles.thumbWrap}>
@@ -892,6 +882,17 @@ export default function FileScreen() {
                     <Text style={styles.extraPillText}>Attach Photo</Text>
                   </TouchableOpacity>
                 )}
+
+                <TouchableOpacity
+                  style={styles.extraPill}
+                  onPress={() => setShowCalculator(true)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open calculator"
+                >
+                  <Ionicons name="calculator-outline" size={14} color={colors.white} />
+                  <Text style={styles.extraPillText}>Calculator</Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -1225,7 +1226,7 @@ const styles = StyleSheet.create({
   },
   amountInput: { textAlign: 'right' },
 
-  // Trailing icons — calculator, then "+" (opens note + photo together).
+  // Trailing "+" icon — opens note, photo and calculator together.
   inputClusterBtn: {
     width: 28,
     height: 30,
@@ -1233,7 +1234,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ── Expanded extras panel (note + photo) ───────────────────
+  // ── Expanded extras panel (note + photo + calculator) ───────
   extrasPanel: {
     backgroundColor: colors.accent,
     paddingHorizontal: spacing.md,
