@@ -6,13 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
     "scheme": "quickexpenses",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F9F9F9"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.quickexpenses.app"
@@ -64,7 +58,17 @@
         {
           "faceIDPermission": "Allow QuickExpenses to use Face ID to unlock the app."
         }
-      ]
+      ],
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F9F9F9"
+        }
+      ],
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

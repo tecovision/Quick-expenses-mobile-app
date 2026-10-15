@@ -446,12 +446,20 @@ background color (`BG_TOP`/`BG_BOTTOM` in the script); change both together.
 ## Known gaps / tech debt
 
 - **No UI tests.** Logic is covered; screens and gestures are not.
-- **Old RN architecture** (`newArchEnabled: false`). Fine now; migrating later
-  needs a full re-test.
+- **New Architecture is mandatory as of SDK 57** — `newArchEnabled` isn't a
+  valid `app.json` key anymore (removed, not just defaulted); Expo Go itself
+  always ran New Architecture regardless of that flag. Upgraded from SDK 54 ->
+  57 (`npx expo install expo@^57.0.0 && npx expo install --fix`) specifically
+  so Expo Go — which only ever runs the latest SDK — can open this project
+  directly again. Needed two follow-up fixes: `tsconfig.json` needs an
+  explicit `"types": ["jest"]` (SDK 57's base tsconfig stopped auto-including
+  it, breaking `describe`/`it`/`expect` resolution), and
+  `@react-native/jest-preset` needs installing directly as a dev dependency
+  (jest-expo's RN preset moved to its own package and is no longer bundled).
 - **Manual keyboard handling.** `app/file/[id].tsx` pads by the reported
-  keyboard height because Expo SDK 54 forces edge-to-edge on Android. If
-  keyboard bugs appear across many devices, consider
-  `react-native-keyboard-controller` rather than hand-tuning insets.
+  keyboard height because Expo forces edge-to-edge on Android. If keyboard
+  bugs appear across many devices, consider `react-native-keyboard-controller`
+  rather than hand-tuning insets.
 - **`RECORD_AUDIO` is explicitly blocked** in `app.json` — `expo-image-picker`
   adds it by default. Don't remove `"microphonePermission": false`, or your
   listing will start asking users for microphone access.
@@ -459,8 +467,9 @@ background color (`BG_TOP`/`BG_BOTTOM` in the script); change both together.
   optional daily reminder. This is a normal, low-sensitivity permission and does
   not change the Data Safety answers (the reminder is local — see Step 5). The
   permission is only requested when the user turns the reminder on.
-- **Notifications can't be tested in Expo Go** on SDK 54 — use a `preview` or
-  `production` EAS build.
+- **Notifications can't be tested in Expo Go** (Expo Go dropped this starting
+  SDK 53, still true on 57) — use a `preview` or `production` EAS build, or a
+  custom dev-client build.
 - **App Lock can't be fully tested in Expo Go either** — `expo-local-authentication`
   needs a real build. Use `preview`/`production`.
 - **Calculator evaluates left-to-right, not by operator precedence** — `2 + 3 × 4`

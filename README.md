@@ -1,6 +1,6 @@
 # QuickExpenses
 
-A mobile expense tracker built with React Native and Expo SDK 54.
+A mobile expense tracker built with React Native and Expo SDK 57.
 
 ---
 
@@ -168,7 +168,7 @@ eas build --profile production --platform ios
 ## Tech Stack
 
 - **React Native** — cross-platform mobile framework
-- **Expo SDK 54** — managed workflow
+- **Expo SDK 57** — managed workflow, New Architecture
 - **Expo Router v6** — file-based navigation
 - **Zustand v5** — global state management
 - **AsyncStorage** — local on-device persistence
