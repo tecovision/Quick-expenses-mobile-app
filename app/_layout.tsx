@@ -1,8 +1,9 @@
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, Component, ReactNode, ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, AppState, AppStateStatus } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { ShareIntentProvider, useShareIntentContext } from 'expo-share-intent';
 import { useStore } from '@/store/useStore';
 import { FirstRunNotice } from '@/components/FirstRunNotice';
 import { BiometricPrompt } from '@/components/BiometricPrompt';
@@ -61,6 +62,16 @@ function RootLayout() {
   const isAppLocked = useStore((s) => s.isAppLocked);
   const unlockApp = useStore((s) => s.unlockApp);
   const lockApp = useStore((s) => s.lockApp);
+
+  // A PhonePe (or other UPI app) "Share receipt" lands here as a plain-text
+  // share intent — jump straight to the screen that parses it into a draft
+  // expense. hasShareIntent only flips true→false via resetShareIntent (set
+  // by that screen on Save/Discard), so a second share while already there
+  // re-renders in place instead of re-triggering this navigation.
+  const { hasShareIntent } = useShareIntentContext();
+  useEffect(() => {
+    if (hasShareIntent) router.replace('/receipt-import');
+  }, [hasShareIntent]);
 
   useEffect(() => {
     loadData()
@@ -137,8 +148,10 @@ function RootLayout() {
 
 export default function Layout() {
   return (
-    <RootErrorBoundary>
-      <RootLayout />
-    </RootErrorBoundary>
+    <ShareIntentProvider options={{ resetOnBackground: true }}>
+      <RootErrorBoundary>
+        <RootLayout />
+      </RootErrorBoundary>
+    </ShareIntentProvider>
   );
 }

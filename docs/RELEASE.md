@@ -88,8 +88,8 @@ actually publish.
 
 ```bash
 npm run type-check     # must pass
-npm test               # must pass (97 tests)
-npx expo-doctor        # must be 18/18
+npm test               # must pass (105 tests)
+npx expo-doctor        # must be 21/21
 ```
 
 Set the version users will see, in `app.json` → `expo.version` (e.g. `1.0.0`).
@@ -303,19 +303,29 @@ on a device. Walk these on at least two different phones:
 - [ ] **Keyboard**: open a file — the blue input row sits fully above the
       keyboard, nothing cut off
 - [ ] **Rapid entry**: add 10 entries in a row — keyboard never closes between them
-- [ ] **Note/Photo panel**: tap `+` on the input row → opens one panel with
-      the note field and an "Attach Photo" pill (no separate camera icon, no
-      enter-arrow icon on the row anymore — just description, amount,
-      calculator, +). Type a note, tap **Done** — keyboard dismisses **and**
-      the panel closes, even with no note typed (same as tapping the "-")
+- [ ] **Note/Photo/Calculator panel**: tap `+` on the input row → opens one
+      panel with the note field, an "Attach Photo" pill, and a "Calculator"
+      pill (no separate camera or calculator icon on the row anymore — just
+      description, amount, +). Type a note, tap **Done** — keyboard dismisses
+      **and** the panel closes, even with no note typed (same as tapping the "-")
 - [ ] **Photo**: from the panel's "Attach Photo" pill, attach from camera and
       from gallery; deny the permission once and confirm the app explains
       rather than crashes
-- [ ] **Inline calculator**: tap the calculator icon on the input row → opens
-      with the current amount (if any) already on the display → compute
+- [ ] **Inline calculator**: from the `+` panel, tap the "Calculator" pill →
+      opens with the current amount (if any) already on the display → compute
       something → **Use This Amount** → the amount field updates and the
-      sheet closes. Also check **Calculator** from the Tools hub still works
-      identically (shared keypad component)
+      sheet closes. The close (X) button dismisses it without using an amount.
+      Also check **Calculator** from the Tools hub still works identically
+      (shared keypad component)
+- [ ] **Shared-receipt import**: from PhonePe (or any app), share a payment's
+      text receipt to QuickExpenses → the app opens straight to Import Receipt
+      with the amount and a "Paid to X" / "Received from X" description
+      pre-filled when the text contains them (blank/editable otherwise), the
+      full shared text shown as the note, and a project picker defaulting to
+      the most recently used project. **Save** adds it to the chosen project;
+      **Discard** (X) drops it. With zero projects, a "name a new project"
+      field appears instead of the picker, and Save creates it first. Needs a
+      dev-client/EAS build, not plain Expo Go — see Known gaps.
 - [ ] **Permanently deny** camera in system settings → confirm the "Open
       Settings" path appears
 - [ ] **Reminder**: Settings → toggle Daily reminder on → grant the notification
@@ -492,3 +502,16 @@ background color (`BG_TOP`/`BG_BOTTOM` in the script); change both together.
   would add a network call and change the Data Safety answers).
 - **To-Do and Notepad have no undo** on delete, unlike expense entries/files.
   Low risk — Clear Done and the trash icon both ask for confirmation first.
+- **Shared-receipt import (`expo-share-intent`) needs a native rebuild.**
+  Registering as an Android Share-sheet target requires an intent-filter in
+  `AndroidManifest.xml`, which Expo Go can't do — this feature is invisible
+  (QuickExpenses won't appear in any app's Share sheet at all) until tested
+  from a dev-client or EAS build, same as notifications/App Lock above. Only
+  `text/*` shares are registered (`androidIntentFilters` in `app.json`); the
+  iOS share extension is disabled (`disableIOS: true`) since this app isn't
+  shipping to iOS. The parser (`src/utils/receiptParser.ts`) looks for a
+  ₹/Rs./INR amount and a "paid to"/"received from" name using regex, not a
+  payment-app SDK — if PhonePe (or whichever app) changes its shared-text
+  wording, matching may degrade gracefully to "amount found, description
+  blank" rather than fail outright, since the user always confirms a draft
+  before anything is saved.

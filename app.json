@@ -68,7 +68,14 @@
           "backgroundColor": "#F9F9F9"
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": ["text/*"],
+          "disableIOS": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
