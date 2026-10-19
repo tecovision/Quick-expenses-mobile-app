@@ -3,7 +3,7 @@ import {
   View,
   Text,
   Image,
-  FlatList,
+  SectionList,
   TouchableOpacity,
   StyleSheet,
   TextInput,
@@ -72,6 +72,18 @@ export default function HomeScreen() {
     if (!q) return files;
     return files.filter(f => f.name.toLowerCase().includes(q));
   }, [files, query]);
+
+  // Favorited files get their own section up top; the rest follow below,
+  // with its own header only when there's a Favorites section to tell it
+  // apart from (otherwise it'd be a redundant label over the whole list).
+  const sections = useMemo(() => {
+    const favorites = filtered.filter(f => f.favorite);
+    const rest = filtered.filter(f => !f.favorite);
+    const out: { title: string; data: typeof filtered }[] = [];
+    if (favorites.length > 0) out.push({ title: 'Favorites', data: favorites });
+    if (rest.length > 0) out.push({ title: favorites.length > 0 ? 'All Files' : '', data: rest });
+    return out;
+  }, [filtered]);
 
   const handleCreate = () => {
     if (name.trim()) {
@@ -150,10 +162,21 @@ export default function HomeScreen() {
       )}
 
       {/* ── File list ── */}
-      <FlatList
-        data={filtered}
+      <SectionList
+        sections={sections}
         keyExtractor={item => item.id}
         renderItem={({ item }) => <FileCard file={item} />}
+        renderSectionHeader={({ section }) =>
+          section.title ? (
+            <Text style={styles.sectionHeader}>
+              {section.title === 'Favorites' && (
+                <Ionicons name="star" size={13} color={colors.star} />
+              )}
+              {' '}{section.title}
+            </Text>
+          ) : null
+        }
+        stickySectionHeadersEnabled={false}
         style={layout.content}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -296,6 +319,15 @@ const styles = StyleSheet.create({
   // ── List ─────────────────────────────────────────────────────
   // Extra bottom padding keeps the last card clear of the FAB.
   list: { paddingHorizontal: spacing.base, paddingBottom: 96, paddingTop: spacing.sm },
+  sectionHeader: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
+  },
 
   // ── Floating action button ────────────────────────────────────
   fab: {

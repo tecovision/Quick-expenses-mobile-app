@@ -32,12 +32,15 @@ import {
   formatDateTime,
   fileTotal,
   parseAmount,
+  matchesDateFilter,
+  DATE_FILTER_LABELS,
+  DateFilter,
   MAX_FILE_NAME_LENGTH,
   MAX_PARTICULAR_LENGTH,
   MAX_NOTE_LENGTH,
 } from '@/utils/helpers';
 import { useCurrency } from '@/hooks/useCurrency';
-import { exportToPDF, exportToCSV, downloadPDF, downloadCSV, openSavedFile } from '@/services/export';
+import { exportToPDF, downloadPDF, openSavedFile } from '@/services/export';
 import { deleteAttachment } from '@/services/attachments';
 import { pickPhoto, PhotoSource } from '@/services/photoPicker';
 import { captureError } from '@/services/monitoring';
@@ -216,6 +219,7 @@ export default function FileScreen() {
   const [nameInput, setNameInput]   = useState('');
   const [exporting, setExporting]   = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -303,9 +307,12 @@ export default function FileScreen() {
 
   const filteredExpenses = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!file || !q) return file?.expenses ?? [];
-    return file.expenses.filter(e => e.particular.toLowerCase().includes(q));
-  }, [file?.expenses, searchQuery]);
+    const base = file?.expenses ?? [];
+    return base.filter(e =>
+      (!q || e.particular.toLowerCase().includes(q)) &&
+      matchesDateFilter(e.createdAt, dateFilter)
+    );
+  }, [file?.expenses, searchQuery, dateFilter]);
 
   // Chronological order — oldest first, newest just above the input row —
   // so the S.No column always reads 1,2,3… top-to-bottom and a new entry
@@ -374,8 +381,15 @@ export default function FileScreen() {
   const total      = fileTotal(file.expenses);
   const subtotal   = fileTotal(filteredExpenses);
   const isSearching = searchQuery.trim().length > 0;
-  const exportFile  = isSearching
-    ? { ...file, name: `${file.name} — ${searchQuery}`, expenses: filteredExpenses }
+  const isFiltering = isSearching || dateFilter !== 'all';
+  // What the current filter is "for", used in export names and messaging —
+  // e.g. `"coffee" · This Month`, or just one half when only one is active.
+  const filterLabel = [
+    isSearching ? `"${searchQuery.trim()}"` : null,
+    dateFilter !== 'all' ? DATE_FILTER_LABELS[dateFilter] : null,
+  ].filter(Boolean).join(' · ');
+  const exportFile  = isFiltering
+    ? { ...file, name: filterLabel ? `${file.name} — ${filterLabel}` : file.name, expenses: filteredExpenses }
     : file;
 
   // ── Handlers ──────────────────────────────────────────────────
@@ -499,11 +513,11 @@ export default function FileScreen() {
   };
 
   const requireExpenses = () => {
-    const target = isSearching ? filteredExpenses : file.expenses;
+    const target = isFiltering ? filteredExpenses : file.expenses;
     if (target.length === 0) {
       Alert.alert(
         'No Expenses',
-        isSearching ? `No results for "${searchQuery}" to export.` : 'Add at least one expense first.'
+        isFiltering ? `No results for ${filterLabel} to export.` : 'Add at least one expense first.'
       );
       return false;
     }
@@ -511,13 +525,12 @@ export default function FileScreen() {
   };
 
   // Share → hand the file to the system share sheet.
-  const runShare = async (type: 'pdf' | 'csv') => {
+  const runShare = async () => {
     setExporting(true);
     try {
-      if (type === 'pdf') await exportToPDF(exportFile, file.expenses, currency);
-      else await exportToCSV(exportFile, file.expenses, currency);
+      await exportToPDF(exportFile, file.expenses, currency);
     } catch (e) {
-      captureError(e, { op: 'shareFile', format: type, count: file.expenses.length });
+      captureError(e, { op: 'shareFile', format: 'pdf', count: file.expenses.length });
       Alert.alert('Failed', 'Something went wrong. Please try again.');
     } finally {
       setExporting(false);
@@ -525,23 +538,21 @@ export default function FileScreen() {
   };
 
   // Download → write the file straight into a folder on the device.
-  const runDownload = async (type: 'pdf' | 'csv') => {
+  const runDownload = async () => {
     setExporting(true);
     try {
-      const result = type === 'pdf'
-        ? await downloadPDF(exportFile, file.expenses, currency)
-        : await downloadCSV(exportFile, file.expenses);
+      const result = await downloadPDF(exportFile, file.expenses, currency);
       if (result.status === 'saved') {
         Alert.alert(
           'Saved',
-          `Your ${type.toUpperCase()} file was saved to your device.`,
+          'Your PDF file was saved to your device.',
           [
             {
               text: 'Open',
               onPress: () =>
                 openSavedFile(result.uri, result.mimeType).catch((e) => {
-                  captureError(e, { op: 'openSavedFile', format: type });
-                  Alert.alert('Can’t Open', `No app on your device can open ${type.toUpperCase()} files.`);
+                  captureError(e, { op: 'openSavedFile', format: 'pdf' });
+                  Alert.alert('Can’t Open', 'No app on your device can open PDF files.');
                 }),
             },
             { text: 'Done', style: 'cancel' },
@@ -551,7 +562,7 @@ export default function FileScreen() {
       // 'shared' (iOS) — the system sheet already gave feedback.
       // 'cancelled' — the user backed out of the folder picker; stay silent.
     } catch (e) {
-      captureError(e, { op: 'downloadFile', format: type, count: file.expenses.length });
+      captureError(e, { op: 'downloadFile', format: 'pdf', count: file.expenses.length });
       Alert.alert('Failed', 'Could not save the file. Please try again.');
     } finally {
       setExporting(false);
@@ -559,17 +570,14 @@ export default function FileScreen() {
   };
 
   // Download and Share used to be two separate header icons, each opening
-  // its own PDF/CSV prompt. One "Export" entry point with every combination
-  // listed is one fewer button in an already icon-dense header, with nothing
-  // lost — the Done/Cancel-prompt flow was identical either way.
+  // its own prompt. One "Export" entry point with every option listed is one
+  // fewer button in an already icon-dense header, with nothing lost.
   const promptExport = () => {
     if (!requireExpenses()) return;
-    const title = isSearching ? `Export "${searchQuery}" results` : 'Export File';
+    const title = isFiltering ? `Export ${filterLabel} results` : 'Export File';
     Alert.alert(title, 'Save a copy or hand it off', [
-      { text: 'Download as PDF', onPress: () => runDownload('pdf') },
-      { text: 'Download as CSV', onPress: () => runDownload('csv') },
-      { text: 'Share as PDF',    onPress: () => runShare('pdf') },
-      { text: 'Share as CSV',    onPress: () => runShare('csv') },
+      { text: 'Download as PDF', onPress: runDownload },
+      { text: 'Share as PDF',    onPress: runShare },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -642,6 +650,28 @@ export default function FileScreen() {
         )}
       </View>
 
+      {/* ── Date filter chips ── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={layout.content}
+        contentContainerStyle={styles.dateChipRow}
+      >
+        {(Object.keys(DATE_FILTER_LABELS) as DateFilter[]).map((f) => (
+          <TouchableOpacity
+            key={f}
+            style={[styles.dateChip, dateFilter === f && styles.dateChipActive]}
+            onPress={() => setDateFilter(f)}
+            accessibilityRole="button"
+            accessibilityLabel={`Filter by ${DATE_FILTER_LABELS[f]}`}
+          >
+            <Text style={[styles.dateChipText, dateFilter === f && styles.dateChipTextActive]}>
+              {DATE_FILTER_LABELS[f]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {/*
         Bottom spacing:
         • Keyboard open  → lift the input row to sit on top of the keyboard.
@@ -705,15 +735,15 @@ export default function FileScreen() {
               }
             }}
           >
-            {/* No results (search) */}
-            {filteredExpenses.length === 0 && isSearching && (
+            {/* No results (search and/or date filter) */}
+            {filteredExpenses.length === 0 && isFiltering && (
               <View style={styles.noResults}>
-                <Text style={styles.noResultsText}>No results for "{searchQuery}"</Text>
+                <Text style={styles.noResultsText}>No results for {filterLabel}</Text>
               </View>
             )}
 
             {/* Empty state (no expenses yet) */}
-            {displayExpenses.length === 0 && !isSearching && (
+            {displayExpenses.length === 0 && !isFiltering && (
               <View style={styles.emptyTable}>
                 <Ionicons name="receipt-outline" size={36} color={colors.borderLight} />
                 <Text style={styles.emptyTableText}>No entries yet</Text>
@@ -735,7 +765,7 @@ export default function FileScreen() {
           </ScrollView>
 
           {/* Grand Total row — lives inside the table card, above the input row */}
-          {!isSearching && file.expenses.length > 0 && (
+          {!isFiltering && file.expenses.length > 0 && (
             <View style={styles.tableTotalRow}>
               <View style={{ width: COL_NO }} />
               <View style={styles.colDivider} />
@@ -754,7 +784,7 @@ export default function FileScreen() {
           )}
 
           {/* Fixed blue input row — always visible at the bottom of the card */}
-          {!isSearching && (
+          {!isFiltering && (
             <View style={styles.inputRow}>
               <Text style={[styles.indexText, styles.inputIndex]} maxFontSizeMultiplier={TABLE_FONT_CAP}>
                 {file.expenses.length + 1}
@@ -823,7 +853,7 @@ export default function FileScreen() {
           )}
 
           {/* ── Expanded extras panel — note, photo and calculator together ── */}
-          {!isSearching && extrasOpen && (
+          {!isFiltering && extrasOpen && (
             <View style={styles.extrasPanel}>
               {/* Note has a multiline keyboard, so the return key inserts a
                   newline instead of dismissing — Done closes the whole panel
@@ -908,13 +938,13 @@ export default function FileScreen() {
           onDismiss={handleUndoDismiss}
         />
 
-        {/* Subtotal — search mode */}
-        {isSearching && filteredExpenses.length > 0 && (
+        {/* Subtotal — search and/or date-filter mode */}
+        {isFiltering && filteredExpenses.length > 0 && (
           <View style={styles.subtotalCard}>
             <View>
               <Text style={styles.subtotalLabel}>Subtotal</Text>
               <Text style={styles.subtotalMeta}>
-                {filteredExpenses.length} result{filteredExpenses.length !== 1 ? 's' : ''} for "{searchQuery}"
+                {filteredExpenses.length} result{filteredExpenses.length !== 1 ? 's' : ''} for {filterLabel}
               </Text>
             </View>
             <Text style={styles.subtotalAmount}>{formatAmount(subtotal)}</Text>
@@ -1025,6 +1055,35 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     color: colors.textPrimary,
     paddingVertical: 0,
+  },
+
+  // ── Date filter chips ──────────────────────────────────────
+  dateChipRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.base,
+    paddingBottom: spacing.md,
+  },
+  dateChip: {
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  dateChipActive: {
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accent,
+  },
+  dateChipText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    color: colors.textMuted,
+  },
+  dateChipTextActive: {
+    color: colors.accent,
+    fontWeight: typography.weights.semibold,
   },
 
   // ── Layout ──────────────────────────────────────────────────

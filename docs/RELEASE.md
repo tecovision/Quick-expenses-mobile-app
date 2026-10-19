@@ -88,7 +88,7 @@ actually publish.
 
 ```bash
 npm run type-check     # must pass
-npm test               # must pass (105 tests)
+npm test               # must pass (103 tests)
 npx expo-doctor        # must be 21/21
 ```
 
@@ -228,12 +228,14 @@ with entries, the note/photo entry, the export dialog, and the Tools hub.
 **Full description:**
 > QuickExpenses is a straightforward expense tracker built for speed and privacy. Create files for trips, projects, or months, and add entries in seconds from a single row — description, amount, an optional note, and a receipt photo.
 >
-> Everything stays on your device. There's no account to create, no cloud sync, and no ads. When you need to hand something over, export any file as a PDF or CSV, or bundle every file into a single ZIP.
+> Everything stays on your device. There's no account to create, no cloud sync, and no ads. When you need to hand something over, export any file as a PDF, or bundle every file into a single ZIP.
 >
 > • Table view with running totals
-> • Attach receipt photos, pinch to zoom
+> • Attach receipt photos, pinch to zoom — included in the exported PDF
 > • Optional notes on any entry
-> • Export to PDF or Excel-compatible CSV
+> • Favorite files for quick access
+> • Filter entries by date (today, yesterday, last 7 days, this month)
+> • Export to PDF
 > • Export all files at once as a ZIP
 > • Swipe to delete, with undo
 > • Recently Deleted keeps files for 30 days
@@ -338,24 +340,36 @@ on a device. Walk these on at least two different phones:
       newest at the bottom above the input row
 - [ ] **Duplicate**: add an entry with a description that already exists →
       confirm the "Already Added" prompt appears
-- [ ] **Rounding**: enter `100.005` → it shows `100.01`; export PDF and CSV →
-      both show `100.01`, and the CSV total matches
-- [ ] **Export menu**: tap the single export icon in a file's header → all
-      four options appear (Download PDF, Download CSV, Share PDF, Share CSV)
-- [ ] **Download**: pick "Download as PDF/CSV" → the Android folder picker
+- [ ] **Rounding**: enter `100.005` → it shows `100.01`; export PDF → it shows
+      `100.01` too
+- [ ] **Export menu**: tap the single export icon in a file's header → both
+      options appear (Download as PDF, Share as PDF) — no CSV option anymore
+- [ ] **Download**: pick "Download as PDF" → the Android folder picker
       appears the first time → the file lands in that folder. Second download
       skips the picker
 - [ ] **Open after download**: the "Saved" dialog offers **Open** → the file
       opens in a viewer app; **Done** dismisses it
-- [ ] **Share**: "Share as PDF/CSV" opens the system share sheet
+- [ ] **Share**: "Share as PDF" opens the system share sheet
+- [ ] **PDF includes attached photos**: add an entry with a receipt photo →
+      export/download the PDF → the photo appears inline under that entry's
+      description (not just the note text)
+- [ ] **Favorites**: star a file from its card, from the long-press menu, or
+      both → it moves into a "Favorites" section at the top of the home
+      screen; un-starring moves it back down. With zero favorites, no
+      section headers show at all (unchanged from before)
+- [ ] **Date filter**: inside a file, tap a date chip (Today / Yesterday /
+      Last 7 Days / This Month) → the table and subtotal narrow to matching
+      entries only, and the input row hides (same read-only behavior as
+      search). Combine a date chip with the search box → both apply
+      together. **All Time** clears it
 - [ ] **First-run notice**: fresh install → the "Your data stays with you"
       screen shows first, its Privacy Policy / Terms links open in the browser,
       **Got it** dismisses it, then the currency picker appears. It does not
       show again on the next launch
 - [ ] **Settings → About**: Privacy Policy and Terms of Use rows open the
       hosted pages
-- [ ] **Export**: verify notes appear in both the PDF and the CSV
-- [ ] **Export all as ZIP** from Settings with several files
+- [ ] **Export**: verify notes and photos appear in the PDF
+- [ ] **Export all as ZIP** from Settings with several files (PDF only now)
 - [ ] **Delete + undo** an entry; delete a file and restore from Recently Deleted
 - [ ] **Rotate / small screen / large font** (Settings → Display → Font size: max)
 - [ ] **Airplane mode** — everything must still work (app is offline-first)
@@ -515,3 +529,14 @@ background color (`BG_TOP`/`BG_BOTTOM` in the script); change both together.
   wording, matching may degrade gracefully to "amount found, description
   blank" rather than fail outright, since the user always confirms a draft
   before anything is saved.
+- **Date filter is fixed presets, not a custom range.** Today / Yesterday /
+  Last 7 Days / This Month / All Time (`src/utils/helpers.ts` →
+  `matchesDateFilter`) — no calendar picker. Deliberately simple: a custom
+  range would mean either a new native date-picker dependency (another
+  dev-client rebuild, on top of the share-intent one above) or hand-rolling
+  a calendar widget, for a "pick two arbitrary dates" need nobody's asked
+  for yet.
+- **CSV/Excel export was removed** (previously `exportToCSV`/`downloadCSV`
+  in `src/services/export.ts`) — PDF only now, by request. If it's ever
+  wanted back, the removed functions' logic is in git history (see the
+  commit that deleted them), not worth resurrecting speculatively.

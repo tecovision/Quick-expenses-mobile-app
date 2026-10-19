@@ -41,18 +41,6 @@ export const safeFileName = (name: string): string =>
 export const escapeHtml = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/**
- * Quote a CSV cell and neutralize spreadsheet formula injection: a leading
- * =, +, - or @ makes Excel/Sheets execute the cell as a formula, so prefix
- * those with an apostrophe (rendered invisibly by spreadsheet apps).
- *
- * Exported for tests.
- */
-export const csvCell = (s: string): string => {
-  const guarded = /^[=+\-@]/.test(s) ? `'${s}` : s;
-  return `"${guarded.replace(/"/g, '""')}"`;
-};
-
 const cacheDir = (): string => {
   const dir = FileSystem.cacheDirectory;
   if (!dir) throw new Error('Cache directory unavailable');
@@ -70,10 +58,51 @@ function buildIndexMap(originalExpenses: Expense[]): Map<string, number> {
   return map;
 }
 
+const MIME_BY_EXT: Record<string, string> = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+  webp: 'image/webp', heic: 'image/heic', heif: 'image/heif',
+};
+
+/**
+ * Read an attached photo off disk and return it as a data: URI. PDFs are
+ * rendered by handing expo-print a plain HTML string — a `file://` <img>
+ * src pointing at the app's sandboxed storage isn't reliably loadable by
+ * the native print renderer, so the bytes need to be inlined instead.
+ * Returns null (photo silently omitted, never breaks the rest of the PDF)
+ * if the file is missing or unreadable.
+ */
+async function photoDataUri(uri: string): Promise<string | null> {
+  try {
+    const b64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const ext = uri.match(/\.(\w+)$/)?.[1]?.toLowerCase() ?? 'jpg';
+    const mime = MIME_BY_EXT[ext] ?? 'image/jpeg';
+    return `data:${mime};base64,${b64}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Expense id → data: URI, for every expense in `expenses` that has a photo. */
+async function buildPhotoMap(expenses: Expense[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  await Promise.all(
+    expenses
+      .filter((e): e is Expense & { photoUri: string } => !!e.photoUri)
+      .map(async (e) => {
+        const dataUri = await photoDataUri(e.photoUri);
+        if (dataUri) map.set(e.id, dataUri);
+      })
+  );
+  return map;
+}
+
 function buildHtml(
   file: ExpenseFile,
   indexMap: Map<string, number>,
   currency?: CurrencyFormat,
+  photoMap?: Map<string, string>,
 ): string {
   const rows = file.expenses
     .map((e) => {
@@ -81,12 +110,17 @@ function buildHtml(
       const noteRow = e.note
         ? `<div class="note">${escapeHtml(e.note)}</div>`
         : '';
+      const photoSrc = photoMap?.get(e.id);
+      const photoRow = photoSrc
+        ? `<img class="attachment" src="${photoSrc}" />`
+        : '';
       return `
         <tr>
           <td>${sno}</td>
           <td>
             <div class="particular">${escapeHtml(e.particular)}</div>
             ${noteRow}
+            ${photoRow}
           </td>
           <td class="amount">${formatCurrency(e.amount, currency)}</td>
           <td class="datetime">${formatDateTime(e.createdAt)}</td>
@@ -110,6 +144,7 @@ function buildHtml(
     .datetime { font-size: 12px; color: #555; white-space: nowrap; }
     .particular { font-weight: 500; }
     .note { font-size: 12px; color: #6e6e73; margin-top: 4px; font-style: italic; line-height: 1.4; }
+    .attachment { display: block; max-width: 140px; max-height: 140px; margin-top: 6px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); }
     .total td { font-weight: 600; background: #F9F9F9; font-size: 15px; }
     th:nth-child(1), td:nth-child(1) { width: 48px; }
     th:last-child, td:last-child { width: 160px; }
@@ -140,50 +175,17 @@ function buildHtml(
 </html>`;
 }
 
-function buildCsv(file: ExpenseFile, indexMap: Map<string, number>): string {
-  const header = 'No.,Particular,Amount,Note,Date & Time Added\n';
-  const rows = file.expenses
-    .map((e) => {
-      const sno = indexMap.get(e.id) ?? '';
-      return [
-        sno,
-        csvCell(e.particular),
-        // Fixed 2 decimals so the CSV matches the on-screen and PDF amount
-        // exactly. Still a bare (unquoted) number, so Excel/Sheets sum it.
-        e.amount.toFixed(2),
-        csvCell(e.note ?? ''),
-        csvCell(formatDateTime(e.createdAt)),
-      ].join(',');
-    })
-    .join('\n');
-  const footer = `\nTotal,,${fileTotal(file.expenses).toFixed(2)},,`;
-  return header + rows + footer;
-}
-
-// ── Single-file exports (share sheet) ────────────────────────────
+// ── Single-file export (share sheet) ──────────────────────────────
 export async function exportToPDF(
   file: ExpenseFile,
   originalExpenses?: Expense[],
   currency?: CurrencyFormat,
 ): Promise<void> {
   const indexMap = buildIndexMap(originalExpenses ?? file.expenses);
-  const html = buildHtml(file, indexMap, currency);
+  const photoMap = await buildPhotoMap(file.expenses);
+  const html = buildHtml(file, indexMap, currency, photoMap);
   const { uri } = await Print.printToFileAsync({ html, base64: false });
   await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: '.pdf' });
-}
-
-export async function exportToCSV(
-  file: ExpenseFile,
-  originalExpenses?: Expense[],
-  currency?: CurrencyFormat,
-): Promise<void> {
-  const indexMap = buildIndexMap(originalExpenses ?? file.expenses);
-  const csv = buildCsv(file, indexMap);
-  const path = `${cacheDir()}${safeFileName(file.name)}.csv`;
-  await FileSystem.writeAsStringAsync(path, csv, {
-    encoding: FileSystem.EncodingType.UTF8,
-  });
-  await Sharing.shareAsync(path, { mimeType: 'text/csv', UTI: '.csv' });
 }
 
 // ── Download to device storage ──────────────────────────────────
@@ -237,25 +239,10 @@ async function saveToDevice(
     return writeToUserFolder(baseName, mimeType, data, encoding);
   }
   // iOS: hand the file to the system sheet ("Save to Files").
-  const ext = mimeType === 'application/pdf' ? 'pdf' : 'csv';
-  const path = `${cacheDir()}${baseName}.${ext}`;
+  const path = `${cacheDir()}${baseName}.pdf`;
   await FileSystem.writeAsStringAsync(path, data, { encoding });
   await Sharing.shareAsync(path, { mimeType });
   return { status: 'shared' };
-}
-
-export async function downloadCSV(
-  file: ExpenseFile,
-  originalExpenses?: Expense[],
-): Promise<SaveResult> {
-  const indexMap = buildIndexMap(originalExpenses ?? file.expenses);
-  const csv = buildCsv(file, indexMap);
-  return saveToDevice(
-    safeFileName(file.name),
-    'text/csv',
-    csv,
-    FileSystem.EncodingType.UTF8,
-  );
 }
 
 export async function downloadPDF(
@@ -264,7 +251,8 @@ export async function downloadPDF(
   currency?: CurrencyFormat,
 ): Promise<SaveResult> {
   const indexMap = buildIndexMap(originalExpenses ?? file.expenses);
-  const html = buildHtml(file, indexMap, currency);
+  const photoMap = await buildPhotoMap(file.expenses);
+  const html = buildHtml(file, indexMap, currency, photoMap);
   const { uri } = await Print.printToFileAsync({ html, base64: false });
   try {
     const b64 = await readFileBase64(uri);
@@ -287,7 +275,7 @@ async function readFileBase64(uri: string): Promise<string> {
 }
 
 /**
- * Build a single ZIP archive containing every file exported as `format`.
+ * Build a single ZIP archive containing every file exported as a PDF.
  * Returns the absolute cache path of the resulting .zip.
  *
  * Duplicate file names get suffixed (_2, _3…) so nothing is overwritten
@@ -295,7 +283,6 @@ async function readFileBase64(uri: string): Promise<string> {
  */
 export async function exportAllAsZip(
   files: ExpenseFile[],
-  format: 'pdf' | 'csv',
   currency?: CurrencyFormat,
 ): Promise<void> {
   if (files.length === 0) throw new Error('No files to export.');
@@ -310,20 +297,17 @@ export async function exportAllAsZip(
     used.set(base, seen + 1);
     if (seen > 0) base = `${base}_${seen + 1}`;
 
-    if (format === 'csv') {
-      zip.file(`${base}.csv`, buildCsv(file, indexMap));
-    } else {
-      const html = buildHtml(file, indexMap, currency);
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-      const b64 = await readFileBase64(uri);
-      zip.file(`${base}.pdf`, b64, { base64: true });
-      try { await FileSystem.deleteAsync(uri, { idempotent: true }); } catch { /* ignore */ }
-    }
+    const photoMap = await buildPhotoMap(file.expenses);
+    const html = buildHtml(file, indexMap, currency, photoMap);
+    const { uri } = await Print.printToFileAsync({ html, base64: false });
+    const b64 = await readFileBase64(uri);
+    zip.file(`${base}.pdf`, b64, { base64: true });
+    try { await FileSystem.deleteAsync(uri, { idempotent: true }); } catch { /* ignore */ }
   }
 
   const base64Zip = await zip.generateAsync({ type: 'base64' });
   const stamp = new Date().toISOString().slice(0, 10);
-  const zipPath = `${cacheDir()}QuickExpenses_${format}_${stamp}.zip`;
+  const zipPath = `${cacheDir()}QuickExpenses_pdf_${stamp}.zip`;
   await FileSystem.writeAsStringAsync(zipPath, base64Zip, {
     encoding: FileSystem.EncodingType.Base64,
   });

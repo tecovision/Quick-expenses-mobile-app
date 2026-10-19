@@ -99,6 +99,7 @@ interface StoreState {
   permanentlyDeleteFile: (id: string) => void;
   clearDeletedFiles: () => void;
   renameFile: (id: string, name: string) => void;
+  toggleFavorite: (id: string) => void;
 
   // ── Expenses ───────────────────────────────────────────────────
   addExpense: (
@@ -278,6 +279,14 @@ export const useStore = create<StoreState>((set, get) => ({
       f.id === id
         ? { ...f, name: name.trim() || f.name, updatedAt: new Date().toISOString() }
         : f
+    );
+    set({ files });
+    saveFiles(files);
+  },
+
+  toggleFavorite: (id) => {
+    const files = get().files.map(f =>
+      f.id === id ? { ...f, favorite: !f.favorite } : f
     );
     set({ files });
     saveFiles(files);

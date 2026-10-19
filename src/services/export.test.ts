@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Print from 'expo-print';
 import * as storage from './storage';
-import { safeFileName, escapeHtml, csvCell, downloadCSV } from './export';
+import { safeFileName, escapeHtml, downloadPDF, exportToPDF } from './export';
 import { ExpenseFile } from '../types';
 
 jest.mock('./storage');
@@ -22,6 +23,8 @@ jest.mock('expo-file-system/legacy', () => ({
 const mockedStorage = storage as jest.Mocked<typeof storage>;
 const SAF = FileSystem.StorageAccessFramework as jest.Mocked<typeof FileSystem.StorageAccessFramework>;
 const writeAsStringAsync = FileSystem.writeAsStringAsync as jest.Mock;
+const readAsStringAsync = FileSystem.readAsStringAsync as jest.Mock;
+const printToFileAsync = Print.printToFileAsync as jest.Mock;
 
 const makeFile = (): ExpenseFile => ({
   id: 'f1', name: 'June Trip', createdAt: '', updatedAt: '',
@@ -48,39 +51,6 @@ describe('escapeHtml', () => {
   });
 });
 
-describe('csvCell', () => {
-  it('quotes ordinary values', () => {
-    expect(csvCell('Taxi fare')).toBe('"Taxi fare"');
-  });
-
-  it('escapes embedded double quotes by doubling them', () => {
-    expect(csvCell('He said "hi"')).toBe('"He said ""hi"""');
-  });
-
-  it('keeps commas and newlines contained within the quoted cell', () => {
-    expect(csvCell('a,b')).toBe('"a,b"');
-    expect(csvCell('line1\nline2')).toBe('"line1\nline2"');
-  });
-
-  // Formula injection: Excel/Sheets execute cells starting with = + - @
-  it.each(['=1+1', '+1', '-1', '@SUM(A1)'])(
-    'neutralizes formula injection for %s',
-    (payload) => {
-      const out = csvCell(payload);
-      expect(out).toBe(`"'${payload}"`);
-    }
-  );
-
-  it('neutralizes a classic command-execution payload', () => {
-    const out = csvCell('=cmd|\' /C calc\'!A0');
-    expect(out.startsWith('"\'=')).toBe(true);
-  });
-
-  it('does not prefix values that merely contain an operator', () => {
-    expect(csvCell('10-20 range')).toBe('"10-20 range"');
-  });
-});
-
 describe('safeFileName', () => {
   it('strips path traversal sequences', () => {
     const out = safeFileName('../../etc/passwd');
@@ -102,13 +72,15 @@ describe('safeFileName', () => {
   });
 });
 
-describe('downloadCSV (Android)', () => {
+describe('downloadPDF (Android)', () => {
   const ORIGINAL_OS = require('react-native').Platform.OS;
 
   beforeEach(() => {
     jest.clearAllMocks();
     require('react-native').Platform.OS = 'android';
-    SAF.createFileAsync.mockResolvedValue('content://downloads/June_Trip.csv');
+    printToFileAsync.mockResolvedValue({ uri: 'file:///cache/tmp.pdf' });
+    readAsStringAsync.mockResolvedValue('ZmFrZXBkZg==');
+    SAF.createFileAsync.mockResolvedValue('content://downloads/June_Trip.pdf');
     SAF.requestDirectoryPermissionsAsync.mockResolvedValue({
       granted: true, directoryUri: 'content://tree/downloads',
     } as any);
@@ -119,16 +91,16 @@ describe('downloadCSV (Android)', () => {
   it('writes straight into a previously granted folder without prompting', async () => {
     mockedStorage.loadDownloadDir.mockResolvedValue('content://tree/downloads');
 
-    const res = await downloadCSV(makeFile());
+    const res = await downloadPDF(makeFile());
 
     expect(res).toEqual({
       status: 'saved',
-      uri: 'content://downloads/June_Trip.csv',
-      mimeType: 'text/csv',
+      uri: 'content://downloads/June_Trip.pdf',
+      mimeType: 'application/pdf',
     });
     expect(SAF.requestDirectoryPermissionsAsync).not.toHaveBeenCalled();
     expect(SAF.createFileAsync).toHaveBeenCalledWith(
-      'content://tree/downloads', 'June_Trip', 'text/csv'
+      'content://tree/downloads', 'June_Trip', 'application/pdf'
     );
     expect(writeAsStringAsync).toHaveBeenCalled();
   });
@@ -136,7 +108,7 @@ describe('downloadCSV (Android)', () => {
   it('asks for a folder the first time and remembers it', async () => {
     mockedStorage.loadDownloadDir.mockResolvedValue(null);
 
-    const res = await downloadCSV(makeFile());
+    const res = await downloadPDF(makeFile());
 
     expect(res.status).toBe('saved');
     expect(SAF.requestDirectoryPermissionsAsync).toHaveBeenCalled();
@@ -147,9 +119,9 @@ describe('downloadCSV (Android)', () => {
     mockedStorage.loadDownloadDir.mockResolvedValue('content://tree/gone');
     SAF.createFileAsync
       .mockRejectedValueOnce(new Error('permission revoked'))
-      .mockResolvedValueOnce('content://tree/downloads/June_Trip.csv');
+      .mockResolvedValueOnce('content://tree/downloads/June_Trip.pdf');
 
-    const res = await downloadCSV(makeFile());
+    const res = await downloadPDF(makeFile());
 
     expect(res.status).toBe('saved');
     expect(mockedStorage.clearDownloadDir).toHaveBeenCalled();
@@ -160,9 +132,48 @@ describe('downloadCSV (Android)', () => {
     mockedStorage.loadDownloadDir.mockResolvedValue(null);
     SAF.requestDirectoryPermissionsAsync.mockResolvedValue({ granted: false } as any);
 
-    const res = await downloadCSV(makeFile());
+    const res = await downloadPDF(makeFile());
 
     expect(res).toEqual({ status: 'cancelled' });
     expect(writeAsStringAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('exportToPDF — attached photos', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    printToFileAsync.mockResolvedValue({ uri: 'file:///cache/out.pdf' });
+  });
+
+  const makeFileWithPhoto = (photoUri: string): ExpenseFile => ({
+    id: 'f1', name: 'Trip', createdAt: '', updatedAt: '',
+    expenses: [{
+      id: 'e1', particular: 'Taxi', amount: 12.5, createdAt: '2026-06-01T10:00:00Z',
+      photoUri,
+    }],
+  });
+
+  it('embeds the attached photo as a base64 data URI in the generated HTML', async () => {
+    readAsStringAsync.mockResolvedValue('ZmFrZWJhc2U2NA==');
+
+    await exportToPDF(makeFileWithPhoto('file:///documents/attachments/abc.jpg'));
+
+    expect(readAsStringAsync).toHaveBeenCalledWith(
+      'file:///documents/attachments/abc.jpg',
+      { encoding: 'base64' }
+    );
+    const html = printToFileAsync.mock.calls[0][0].html as string;
+    expect(html).toContain('data:image/jpeg;base64,ZmFrZWJhc2U2NA==');
+    expect(html).toContain('class="attachment"');
+  });
+
+  it('omits the image without throwing when the photo file cannot be read', async () => {
+    readAsStringAsync.mockRejectedValue(new Error('file missing'));
+
+    await expect(exportToPDF(makeFileWithPhoto('file:///documents/attachments/gone.jpg')))
+      .resolves.toBeUndefined();
+
+    const html = printToFileAsync.mock.calls[0][0].html as string;
+    expect(html).not.toContain('<img');
   });
 });

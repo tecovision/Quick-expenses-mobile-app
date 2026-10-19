@@ -79,32 +79,20 @@ export default function SettingsScreen() {
     }
   };
 
-  const runBulkExport = async (format: 'pdf' | 'csv') => {
+  const runBulkExport = async () => {
     if (files.length === 0) {
       Alert.alert('Nothing to Export', 'You have no expense files yet.');
       return;
     }
     setBulkExporting(true);
     try {
-      await exportAllAsZip(files, format, currency);
+      await exportAllAsZip(files, currency);
     } catch (e) {
-      captureError(e, { op: 'exportAllAsZip', format, fileCount: files.length });
+      captureError(e, { op: 'exportAllAsZip', format: 'pdf', fileCount: files.length });
       Alert.alert('Failed', 'Could not build the archive. Please try again.');
     } finally {
       setBulkExporting(false);
     }
-  };
-
-  const promptBulkExport = () => {
-    Alert.alert(
-      `Export All Files (${files.length})`,
-      'Bundle every file into a single ZIP archive.',
-      [
-        { text: 'PDF (.zip)',         onPress: () => runBulkExport('pdf') },
-        { text: 'Excel CSV (.zip)',   onPress: () => runBulkExport('csv') },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
   };
 
   const handleCurrencySelect = (c: Currency) => {
@@ -225,7 +213,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <TouchableOpacity
             style={[styles.row, { borderBottomWidth: 0 }]}
-            onPress={promptBulkExport}
+            onPress={runBulkExport}
             activeOpacity={0.7}
             disabled={bulkExporting}
           >
@@ -236,7 +224,7 @@ export default function SettingsScreen() {
               <View>
                 <Text style={styles.rowTitle}>Export All Files</Text>
                 <Text style={styles.rowSub}>
-                  {files.length} file{files.length !== 1 ? 's' : ''} as PDF or CSV (.zip)
+                  {files.length} file{files.length !== 1 ? 's' : ''} as PDF (.zip)
                 </Text>
               </View>
             </View>

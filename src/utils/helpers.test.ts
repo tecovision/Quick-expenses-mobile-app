@@ -4,6 +4,7 @@ import {
   fileTotal,
   formatCurrency,
   uid,
+  matchesDateFilter,
 } from './helpers';
 
 describe('parseAmount', () => {
@@ -89,5 +90,41 @@ describe('uid', () => {
   it('produces unique values across many calls', () => {
     const ids = new Set(Array.from({ length: 1000 }, () => uid()));
     expect(ids.size).toBe(1000);
+  });
+});
+
+describe('matchesDateFilter', () => {
+  // Wednesday, 15 Oct 2026, local noon — fixed reference point for every case.
+  const NOW = new Date(2026, 9, 15, 12, 0, 0);
+  const at = (y: number, m: number, d: number, h = 12) => new Date(y, m, d, h).toISOString();
+
+  it('"all" matches anything', () => {
+    expect(matchesDateFilter(at(2020, 0, 1), 'all', NOW)).toBe(true);
+  });
+
+  it('"today" matches only the same calendar day, any time', () => {
+    expect(matchesDateFilter(at(2026, 9, 15, 0), 'today', NOW)).toBe(true);
+    expect(matchesDateFilter(at(2026, 9, 15, 23), 'today', NOW)).toBe(true);
+    expect(matchesDateFilter(at(2026, 9, 14, 23), 'today', NOW)).toBe(false);
+  });
+
+  it('"yesterday" matches only the calendar day before', () => {
+    expect(matchesDateFilter(at(2026, 9, 14), 'yesterday', NOW)).toBe(true);
+    expect(matchesDateFilter(at(2026, 9, 15), 'yesterday', NOW)).toBe(false);
+    expect(matchesDateFilter(at(2026, 9, 13), 'yesterday', NOW)).toBe(false);
+  });
+
+  it('"week" matches the last 7 days inclusive of today', () => {
+    expect(matchesDateFilter(at(2026, 9, 15), 'week', NOW)).toBe(true);  // today
+    expect(matchesDateFilter(at(2026, 9, 9), 'week', NOW)).toBe(true);   // 6 days ago
+    expect(matchesDateFilter(at(2026, 9, 8), 'week', NOW)).toBe(false);  // 7 days ago — out
+    expect(matchesDateFilter(at(2026, 9, 16), 'week', NOW)).toBe(false); // future
+  });
+
+  it('"month" matches the same calendar month and year', () => {
+    expect(matchesDateFilter(at(2026, 9, 1), 'month', NOW)).toBe(true);
+    expect(matchesDateFilter(at(2026, 9, 31, 23), 'month', NOW)).toBe(true);
+    expect(matchesDateFilter(at(2026, 8, 30), 'month', NOW)).toBe(false);
+    expect(matchesDateFilter(at(2025, 9, 15), 'month', NOW)).toBe(false);
   });
 });

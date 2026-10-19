@@ -13,6 +13,7 @@ export interface ExpenseFile {
   expenses: Expense[];
   createdAt: string;
   updatedAt: string;
+  favorite?: boolean;
 }
 
 export interface DeletedExpenseFile extends ExpenseFile {

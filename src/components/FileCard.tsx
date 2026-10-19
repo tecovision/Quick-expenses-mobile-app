@@ -25,6 +25,7 @@ const DELETE_W = 84;
 
 export function FileCard({ file }: Props) {
   const deleteFile = useStore((s) => s.deleteFile);
+  const toggleFavorite = useStore((s) => s.toggleFavorite);
   const { formatAmount } = useCurrency();
   const total = fileTotal(file.expenses);
 
@@ -95,6 +96,10 @@ export function FileCard({ file }: Props) {
           onLongPress={() => {
             Alert.alert(file.name, undefined, [
               { text: 'Open', onPress: () => router.push(`/file/${file.id}`) },
+              {
+                text: file.favorite ? 'Remove from Favorites' : 'Add to Favorites',
+                onPress: () => toggleFavorite(file.id),
+              },
               { text: 'Delete', style: 'destructive', onPress: handleDelete },
               { text: 'Cancel', style: 'cancel' },
             ]);
@@ -117,6 +122,15 @@ export function FileCard({ file }: Props) {
           </View>
           <View style={styles.right}>
             <Text style={styles.total}>{formatAmount(total)}</Text>
+            <IconButton
+              name={file.favorite ? 'star' : 'star-outline'}
+              onPress={() => toggleFavorite(file.id)}
+              variant="ghost"
+              size={17}
+              color={file.favorite ? colors.star : colors.textMuted}
+              accessibilityLabel={file.favorite ? `Remove ${file.name} from favorites` : `Add ${file.name} to favorites`}
+              style={styles.deleteIconBtn}
+            />
             <IconButton
               name="trash-outline"
               onPress={handleDelete}
@@ -197,7 +211,7 @@ const styles = StyleSheet.create({
   right: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   total: {
     fontSize: typography.sizes.base,

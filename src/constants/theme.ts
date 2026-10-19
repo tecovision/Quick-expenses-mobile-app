@@ -11,6 +11,7 @@ export const colors = {
   accent: '#007AFF',
   accentSoft: '#EAF3FF',
   dangerSoft: '#FFF1F0',
+  star: '#F5A623',
   white: '#FFFFFF',
 } as const;
 

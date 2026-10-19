@@ -99,3 +99,41 @@ export function timeAgo(isoString: string): string {
   if (days < 30) return `${days} days ago`;
   return formatDate(isoString);
 }
+
+export type DateFilter = 'all' | 'today' | 'yesterday' | 'week' | 'month';
+
+export const DATE_FILTER_LABELS: Record<DateFilter, string> = {
+  all: 'All Time',
+  today: 'Today',
+  yesterday: 'Yesterday',
+  week: 'Last 7 Days',
+  month: 'This Month',
+};
+
+/**
+ * Whether `createdAt` falls within the given date filter, evaluated against
+ * `now` (defaults to the real current time — injectable for tests). Day
+ * boundaries use local time, matching what the user sees on screen.
+ */
+export function matchesDateFilter(createdAt: string, filter: DateFilter, now: Date = new Date()): boolean {
+  if (filter === 'all') return true;
+
+  const d = new Date(createdAt);
+  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const today = startOfDay(now);
+
+  switch (filter) {
+    case 'today':
+      return startOfDay(d) === today;
+    case 'yesterday': {
+      const yesterday = today - 86_400_000;
+      return startOfDay(d) === yesterday;
+    }
+    case 'week': {
+      const weekStart = today - 6 * 86_400_000; // last 7 days, today inclusive
+      return startOfDay(d) >= weekStart && startOfDay(d) <= today;
+    }
+    case 'month':
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }
+}
