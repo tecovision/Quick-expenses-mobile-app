@@ -3,6 +3,7 @@ import { Currency, DeletedExpenseFile, ExpenseFile, Note, TodoItem } from '../ty
 import { DEFAULT_CURRENCY } from '../constants/currencies';
 import { approxRate } from '../constants/approxRates';
 import { captureError } from './monitoring';
+import { deleteAllAttachments } from './attachments';
 
 const KEYS = {
   files:        '@quickexpenses/files',
@@ -307,10 +308,12 @@ export async function markBiometricPromptSeen(): Promise<void> {
 }
 
 // ── Nuclear option ───────────────────────────────────────────────
+/** Wipes every stored key AND every attachment file — a full factory reset. */
 export async function clearAllData(): Promise<void> {
   try {
     await AsyncStorage.multiRemove(Object.values(KEYS));
   } catch (e) {
     captureError(e, { op: 'clearAllData' });
   }
+  await deleteAllAttachments();
 }

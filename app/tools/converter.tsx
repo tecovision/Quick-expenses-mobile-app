@@ -70,7 +70,11 @@ export default function ConverterScreen() {
     swapConverterCurrencies();
     setAmountPrimary(amountSecondary);
     setAmountSecondary(amountPrimary);
-    setRateText(String(converter.rate > 0 ? roundMoney(1 / converter.rate) : converter.rate));
+    // Read the store's own freshly-inverted rate rather than recomputing it
+    // from this closure's now-stale `converter` — recomputing here duplicated
+    // the inversion the store already did, at 2-decimal precision instead of
+    // the store's 6, which could show e.g. "0" for a real rate of 0.0037.
+    setRateText(String(useStore.getState().converter.rate));
   };
 
   const handlePickCurrency = (c: Currency) => {

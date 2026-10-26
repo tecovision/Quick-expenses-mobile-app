@@ -35,3 +35,12 @@ export async function deleteAttachment(uri?: string): Promise<void> {
     /* ignore */
   }
 }
+
+/** Wipe every attachment at once — the whole-app "erase all data" path. */
+export async function deleteAllAttachments(): Promise<void> {
+  try {
+    await FileSystem.deleteAsync(ATTACHMENTS_DIR, { idempotent: true });
+  } catch {
+    /* ignore */
+  }
+}

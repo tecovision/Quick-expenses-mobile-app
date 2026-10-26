@@ -12,6 +12,7 @@ import { colors, typography, spacing, radius, shadows, layout } from '@/constant
 import { fileTotal, timeAgo } from '@/utils/helpers';
 import { useCurrency } from '@/hooks/useCurrency';
 import { IconButton } from '@/components/IconButton';
+import { EmptyState } from '@/components/EmptyState';
 
 export default function RecentlyDeletedScreen() {
   const deletedFiles     = useStore(s => s.deletedFiles);
@@ -65,11 +66,11 @@ export default function RecentlyDeletedScreen() {
       <Text style={styles.note}>Files are kept for 30 days, then automatically removed.</Text>
 
       {deletedFiles.length === 0 ? (
-        <View style={styles.empty}>
-          <Ionicons name="trash-outline" size={48} color={colors.borderLight} />
-          <Text style={styles.emptyTitle}>No deleted files</Text>
-          <Text style={styles.emptySub}>Files you delete will appear here for 30 days.</Text>
-        </View>
+        <EmptyState
+          icon="trash-outline"
+          title="No deleted files"
+          subtitle="Files you delete will appear here for 30 days."
+        />
       ) : (
         <FlatList
           data={deletedFiles}
@@ -148,24 +149,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
 
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xl,
-  },
-  emptyTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    color: colors.textPrimary,
-    marginTop: spacing.sm,
-  },
-  emptySub: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
 
   list: { paddingHorizontal: spacing.base, paddingBottom: spacing.xxl },
 

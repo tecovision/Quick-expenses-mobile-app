@@ -13,6 +13,17 @@ export const colors = {
   dangerSoft: '#FFF1F0',
   star: '#F5A623',
   white: '#FFFFFF',
+
+  // Secondary identity colors for the Tools grid — each tile's icon tint
+  // (toolXSoft) pairs with a matching foreground (toolX) so the icon glyph
+  // actually matches its own tile instead of every tile sharing one blue
+  // icon on top of four different-colored backgrounds.
+  toolPurple: '#7C5CFC',
+  toolPurpleSoft: '#F3EEFF',
+  toolGreen: '#1DA35C',
+  toolGreenSoft: '#EAFBF1',
+  toolAmber: '#C17D0A',
+  toolAmberSoft: '#FFF7E6',
 } as const;
 
 // Reusable elevation presets — a soft, consistent "lift" for primary buttons

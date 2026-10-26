@@ -488,3 +488,29 @@ describe('app lock (Face ID / fingerprint)', () => {
     expect(mockedStorage.markBiometricPromptSeen).toHaveBeenCalled();
   });
 });
+
+describe('resetAllData', () => {
+  it('cancels the reminder, wipes storage, and reloads exactly like a fresh install', async () => {
+    // clearAllData wipes the "seeded" and files keys too, so the reload
+    // after it should behave as if nothing had ever been saved.
+    mockedStorage.hasSeeded.mockResolvedValue(false);
+    mockedStorage.loadFiles.mockResolvedValue([]);
+
+    await useStore.getState().resetAllData();
+
+    expect(mockedNotifications.cancelDailyReminder).toHaveBeenCalled();
+    expect(mockedStorage.clearAllData).toHaveBeenCalled();
+    expect(useStore.getState().files.map(f => f.name)).toEqual(['Project 1', 'Project 2']);
+    expect(useStore.getState().isLoading).toBe(false);
+  });
+
+  it('cancels the reminder before wiping storage', async () => {
+    const order: string[] = [];
+    mockedNotifications.cancelDailyReminder.mockImplementation(async () => { order.push('cancel'); });
+    mockedStorage.clearAllData.mockImplementation(async () => { order.push('clear'); });
+
+    await useStore.getState().resetAllData();
+
+    expect(order).toEqual(['cancel', 'clear']);
+  });
+});

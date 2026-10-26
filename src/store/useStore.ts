@@ -13,6 +13,7 @@ import {
   loadConverterPrefs, saveConverterPrefs, defaultConverterPrefs, ConverterPrefs,
   loadBiometricEnabled, saveBiometricEnabled,
   hasSeenBiometricPrompt, markBiometricPromptSeen,
+  clearAllData,
 } from '../services/storage';
 import { deleteAttachment } from '../services/attachments';
 import {
@@ -120,6 +121,10 @@ interface StoreState {
   // ── Currency ───────────────────────────────────────────────────
   setCurrency: (currency: Currency) => void;
   markCurrencyPickerShown: () => void;
+
+  // ── Danger zone ───────────────────────────────────────────────
+  /** Wipes every file, setting and attachment, then reloads as if freshly installed. */
+  resetAllData: () => Promise<void>;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -502,5 +507,16 @@ export const useStore = create<StoreState>((set, get) => ({
 
   lockApp: () => {
     if (get().biometricEnabled) set({ isAppLocked: true });
+  },
+
+  resetAllData: async () => {
+    // Stop any scheduled reminder before wiping its own stored prefs, so
+    // nothing fires later referencing a state that no longer exists.
+    await cancelDailyReminder();
+    await clearAllData();
+    // Re-running the normal startup load re-seeds the two default files,
+    // the first-run notice and the currency picker — exactly like a fresh
+    // install, since every "have I done this before" flag was just wiped.
+    await get().loadData();
   },
 }));

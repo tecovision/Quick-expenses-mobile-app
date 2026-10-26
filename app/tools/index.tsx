@@ -12,6 +12,7 @@ const TOOLS: {
   title: string;
   subtitle: string;
   tint: string;
+  color: string;
 }[] = [
   {
     href: '/tools/converter',
@@ -19,27 +20,31 @@ const TOOLS: {
     title: 'Currency Converter',
     subtitle: 'Convert between two currencies',
     tint: colors.accentSoft,
+    color: colors.accent,
   },
   {
     href: '/tools/calculator',
     icon: 'calculator-outline',
     title: 'Calculator',
     subtitle: 'Quick arithmetic',
-    tint: '#F3EEFF',
+    tint: colors.toolPurpleSoft,
+    color: colors.toolPurple,
   },
   {
     href: '/tools/todo',
     icon: 'checkbox-outline',
     title: 'To-Do List',
     subtitle: 'Keep track of tasks',
-    tint: '#EAFBF1',
+    tint: colors.toolGreenSoft,
+    color: colors.toolGreen,
   },
   {
     href: '/tools/notes',
     icon: 'document-text-outline',
     title: 'Notepad',
     subtitle: 'Jot down anything',
-    tint: '#FFF7E6',
+    tint: colors.toolAmberSoft,
+    color: colors.toolAmber,
   },
 ];
 
@@ -62,7 +67,7 @@ export default function ToolsScreen() {
               activeOpacity={0.75}
             >
               <View style={[styles.iconWrap, { backgroundColor: t.tint }]}>
-                <Ionicons name={t.icon} size={24} color={colors.accent} />
+                <Ionicons name={t.icon} size={24} color={t.color} />
               </View>
               <Text style={styles.cardTitle}>{t.title}</Text>
               <Text style={styles.cardSubtitle}>{t.subtitle}</Text>

@@ -51,6 +51,8 @@ export function UndoToast({ visible, message, onUndo, onDismiss, duration = 5000
             onUndo();
           }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Undo"
         >
           <Text style={styles.undoText}>Undo</Text>
         </TouchableOpacity>
@@ -61,7 +63,7 @@ export function UndoToast({ visible, message, onUndo, onDismiss, duration = 5000
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: colors.textPrimary,
     borderRadius: radius.md,
     marginHorizontal: spacing.base,
     marginBottom: spacing.sm,

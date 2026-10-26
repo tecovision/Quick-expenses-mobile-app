@@ -17,6 +17,13 @@ const AMOUNT_PATTERN = /(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)/i;
 const PAID_TO_PATTERN = /paid\s+(?:(?:₹|Rs\.?|INR)\s*[\d,.]+\s*)?(?:to|towards)\s+([^\n,]+?)(?=\s+(?:on|using|via|at)\b|[.\n]|$)/i;
 const RECEIVED_FROM_PATTERN = /received\s+(?:(?:₹|Rs\.?|INR)\s*[\d,.]+\s*)?from\s+([^\n,]+?)(?=\s+(?:on|using|via|at)\b|[.\n]|$)/i;
 
+// This text comes from whatever app the user shared from — not something
+// QuickExpenses controls. A real receipt is at most a few hundred
+// characters; capping well above that bounds the regex work against a
+// maliciously (or just accidentally) huge shared blob, and keeps an
+// absurdly long string from ever reaching component state/TextInput.
+const MAX_INPUT_LENGTH = 4000;
+
 /**
  * Pulls an amount and a short description out of a payment app's shared
  * "receipt" text. Deliberately conservative: a field is left blank/null
@@ -24,7 +31,7 @@ const RECEIVED_FROM_PATTERN = /received\s+(?:(?:₹|Rs\.?|INR)\s*[\d,.]+\s*)?fro
  * caller always shows a draft the user confirms before it's saved.
  */
 export function parseSharedReceipt(raw: string): ParsedReceipt {
-  const text = raw.trim();
+  const text = raw.trim().slice(0, MAX_INPUT_LENGTH);
 
   const amountMatch = text.match(AMOUNT_PATTERN);
   const amount = amountMatch ? parseAmount(amountMatch[1].replace(/,/g, '')) : null;

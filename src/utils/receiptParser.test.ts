@@ -45,4 +45,16 @@ describe('parseSharedReceipt', () => {
   it('rejects a zero or negative-looking amount', () => {
     expect(parseSharedReceipt('You paid ₹0 to Nobody').amount).toBeNull();
   });
+
+  it('caps a pathologically long shared text instead of scanning it in full', () => {
+    // Worst case for the lazy-quantifier + lookahead patterns: a huge run of
+    // plain spaces that never satisfies the lookahead and never hits a
+    // comma/newline either, so the engine would otherwise walk the entire
+    // string one character at a time.
+    const huge = 'paid to ' + ' '.repeat(2_000_000);
+    const start = Date.now();
+    const r = parseSharedReceipt(huge);
+    expect(Date.now() - start).toBeLessThan(1000);
+    expect(r.note.length).toBeLessThanOrEqual(4000);
+  });
 });

@@ -31,12 +31,14 @@ export default function SettingsScreen() {
   const biometricSupported = useStore(s => s.biometricSupported);
   const biometricEnabled   = useStore(s => s.biometricEnabled);
   const setBiometricEnabled = useStore(s => s.setBiometricEnabled);
+  const resetAllData       = useStore(s => s.resetAllData);
 
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [bulkExporting, setBulkExporting] = useState(false);
   const [togglingReminder, setTogglingReminder] = useState(false);
   const [togglingBiometric, setTogglingBiometric] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const handleReminderToggle = async (next: boolean) => {
     if (togglingReminder) return;
@@ -77,6 +79,45 @@ export default function SettingsScreen() {
     } finally {
       setTogglingBiometric(false);
     }
+  };
+
+  const handleEraseAll = () => {
+    Alert.alert(
+      'Erase All Data?',
+      'Every file, expense, attached photo, note and to-do will be permanently deleted. This cannot be undone — export anything you want to keep first.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Erase Everything',
+          style: 'destructive',
+          onPress: () => {
+            // Second confirmation — this is the one truly irreversible action
+            // in the app (no undo, no Recently Deleted), so a single tap from
+            // a settings list isn't enough friction on its own.
+            Alert.alert(
+              'Are You Sure?',
+              'This is permanent. All your data will be gone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Erase Everything',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setResetting(true);
+                    try {
+                      await resetAllData();
+                      router.replace('/');
+                    } finally {
+                      setResetting(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   const runBulkExport = async () => {
@@ -240,7 +281,7 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>DATA</Text>
         <View style={styles.card}>
           <TouchableOpacity
-            style={[styles.row, { borderBottomWidth: 0 }]}
+            style={styles.row}
             onPress={() => router.push('/recently-deleted')}
             activeOpacity={0.7}
           >
@@ -258,6 +299,25 @@ export default function SettingsScreen() {
               )}
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.row, { borderBottomWidth: 0 }]}
+            onPress={handleEraseAll}
+            activeOpacity={0.7}
+            disabled={resetting}
+          >
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconWrap, { backgroundColor: colors.dangerSoft }]}>
+                <Ionicons name="warning-outline" size={18} color={colors.danger} />
+              </View>
+              <Text style={[styles.rowTitle, { color: colors.danger }]}>Erase All Data</Text>
+            </View>
+            {resetting ? (
+              <ActivityIndicator size="small" color={colors.danger} />
+            ) : (
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -295,7 +355,7 @@ export default function SettingsScreen() {
           <View style={[styles.row, { borderBottomWidth: 0 }]}>
             <View style={styles.rowLeft}>
               <View style={[styles.iconWrap, { backgroundColor: colors.accentSoft }]}>
-                <Ionicons name="information-circle-outline" size={18} color="#2563EB" />
+                <Ionicons name="information-circle-outline" size={18} color={colors.accent} />
               </View>
               <Text style={styles.rowTitle}>Version</Text>
             </View>
